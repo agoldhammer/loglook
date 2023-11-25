@@ -5,12 +5,6 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::process;
 
-// fn read_log_file(path: &str) -> Result<(), Box<dyn Error>> {
-//     let contents = fs::read_to_string(path)?;
-//     println!("With text:\n{contents}");
-//     return Ok(());
-// }
-
 fn main() {
     // File hosts.txt must exist in the current path
     if let Ok(lines) = read_lines("./access.log") {
@@ -51,11 +45,3 @@ where
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
-// fn main() {
-//     // println!("Hello, world!");
-//     let path = "access.log";
-//     if let Err(e) = read_log_file(path) {
-//         println!("An error occurred: {e}");
-//         process::exit(1);
-//     };
-// }
