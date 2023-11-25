@@ -11,8 +11,11 @@ fn main() {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(line) = line {
+                // let re = Regex::new(
+                //     r#"(?<ip>\d+\.\d+\.\d+\.\d+)\W-\W-\W\[(?<time>.+)\] (?<method>".+")(?<code>\W\d+\W)(?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
+                // )
                 let re = Regex::new(
-                    r#"(?<ip>\d+\.\d+\.\d+\.\d+)\W-\W-\W\[(?<time>.+)\] (?<method>".+")(?<code>\W\d+\W)(?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
+                    r#"(?<ip>\S+) - - \[(?<time>.+)\] (?<method>".+")(?<code>\W\d+\W)(?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
                 )
                 .unwrap();
                 let m = re.find(&line).unwrap();
