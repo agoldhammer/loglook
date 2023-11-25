@@ -18,16 +18,22 @@ fn main() {
         for line in lines {
             if let Ok(line) = line {
                 let re = Regex::new(
-                    r#"(?<ip>\d+\.\d+\.\d+\.\d+)\W-\W-\W\[(?<time>.+)\] (?<method>".+" )"#,
+                    r#"(?<ip>\d+\.\d+\.\d+\.\d+)\W-\W-\W\[(?<time>.+)\] (?<method>".+")(?<code>\W\d+\W)(?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
                 )
                 .unwrap();
                 let m = re.find(&line).unwrap();
                 let caps = re.captures(&line).unwrap();
+                println!("\n");
                 println!("IP: {}", caps.name("ip").unwrap().as_str());
                 println!("Time: {}", caps.name("time").unwrap().as_str());
                 println!("Method: {}", caps.name("method").unwrap().as_str());
+                println!("Code: {}", caps.name("code").unwrap().as_str());
+                println!("Bytes: {}", caps.name("bytes").unwrap().as_str());
+                println!("Misc: {}", caps.name("misc").unwrap().as_str());
+                println!("UA: {}", caps.name("ua").unwrap().as_str());
                 println!("m: {}", m.as_str());
                 println!("line: {}", line);
+                println!("\n");
             }
         }
     } else {
