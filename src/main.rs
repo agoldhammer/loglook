@@ -17,16 +17,15 @@ fn main() {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(line) = line {
-                let re = Regex::new(r"(?<ip>\d+\.\d+\.\d+\.\d+)\W-\W-\W\[(?<time>.+)\](?<rest>.+)")
-                    .unwrap();
-                // let re =
-                //     Regex::new(r"(?<ip>[\d\.\:]+)\W-\W-\W\[(?<time>.+)\](?<method>.+)").unwrap();
-                // let re = Regex::new(r"(?<ip>\d+\.\d+\.\d+\.\d+)\W-\W-\W\[(?<time>.+)\]").unwrap();
+                let re = Regex::new(
+                    r#"(?<ip>\d+\.\d+\.\d+\.\d+)\W-\W-\W\[(?<time>.+)\] (?<method>".+" )"#,
+                )
+                .unwrap();
                 let m = re.find(&line).unwrap();
                 let caps = re.captures(&line).unwrap();
                 println!("IP: {}", caps.name("ip").unwrap().as_str());
                 println!("Time: {}", caps.name("time").unwrap().as_str());
-                println!("Rest: {}", caps.name("rest").unwrap().as_str());
+                println!("Method: {}", caps.name("method").unwrap().as_str());
                 println!("m: {}", m.as_str());
                 println!("line: {}", line);
             }
