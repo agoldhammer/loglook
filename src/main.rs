@@ -6,10 +6,11 @@ use std::path::Path;
 use std::process;
 use std::net::IpAddr;
 use chrono::DateTime;
+use std::vec::Vec;
 // use chrono::format::ParseError;
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct LogEntry {
     ip: IpAddr,
     time: String,
@@ -61,15 +62,19 @@ fn main() {
                     r#"(?<ip>\S+) - - \[(?<time>.+)\] "(?<method>.+)" (?<code>\d+) (?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
                 )
                 .unwrap();
+    let mut logentries: Vec<LogEntry> = Vec::new();
     if let Ok(lines) = read_lines("./access.log") {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(line) = line {
-                let logentry = make_logentry(&re, line);
-                dbg!(logentry);
-                println!("\n")
+                logentries.push(make_logentry(&re, line));
             }
         }
+        for logentry in &logentries {
+            dbg!(logentry);
+            println!("\n")
+        }
+        println!("No. entries: {}", logentries.len())
     } else {
         println!("Error WTF?");
         process::exit(1)
