@@ -47,7 +47,7 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z").expect("should be valid time fmt");
     return LogEntry {
         ip: ip,
-        time: time.to_string().clone(),
+        time: time.to_string(),
         method: get_re_match_part(&caps, "method"),
         code: code_str.parse().unwrap(),
         bytes: bytes_str.parse().unwrap(),
