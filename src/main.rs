@@ -41,7 +41,6 @@ fn make_logentry(re: &Regex, line: String) {
     let bytes_str = get_re_match_part(&caps, "bytes");
     let time_str = get_re_match_part(&caps, "time");
     let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z").expect("should be valid time fmt");
-    // dbg!(custom);
     let logentry = LogEntry {
         ip: get_re_match_part(&caps, "ip"),
         time: time.to_string(),
@@ -62,7 +61,6 @@ fn main() {
                     r#"(?<ip>\S+) - - \[(?<time>.+)\] (?<method>".+") (?<code>\d+) (?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
                 )
                 .unwrap();
-    // File hosts.txt must exist in the current path
     if let Ok(lines) = read_lines("./access.log") {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
