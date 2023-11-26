@@ -4,13 +4,14 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::process;
+use std::net::IpAddr;
 use chrono::DateTime;
 // use chrono::format::ParseError;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct LogEntry {
-    ip: String,
+    ip: IpAddr,
     time: String,
     method: String,
     code: u32,
@@ -37,12 +38,14 @@ fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
 // Convert line to logentry
 fn make_logentry(re: &Regex, line: String) -> LogEntry {
     let caps = re.captures(&line).unwrap();
+    let ip_str = get_re_match_part(&caps, "ip");
+    let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
     let code_str = get_re_match_part(&caps, "code");
     let bytes_str = get_re_match_part(&caps, "bytes");
     let time_str = get_re_match_part(&caps, "time");
     let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z").expect("should be valid time fmt");
     return LogEntry {
-        ip: get_re_match_part(&caps, "ip").clone(),
+        ip: ip,
         time: time.to_string().clone(),
         method: get_re_match_part(&caps, "method"),
         code: code_str.parse().unwrap(),
