@@ -5,7 +5,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::process;
 use chrono::DateTime;
-use chrono::format::ParseError;
+// use chrono::format::ParseError;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -58,7 +58,7 @@ fn make_logentry(re: &Regex, line: String) {
 fn main() {
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
-                    r#"(?<ip>\S+) - - \[(?<time>.+)\] (?<method>".+") (?<code>\d+) (?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
+                    r#"(?<ip>\S+) - - \[(?<time>.+)\] "(?<method>.+)" (?<code>\d+) (?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
                 )
                 .unwrap();
     if let Ok(lines) = read_lines("./access.log") {
