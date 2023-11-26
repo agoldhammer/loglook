@@ -8,7 +8,7 @@ use chrono::DateTime;
 // use chrono::format::ParseError;
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct LogEntry {
     ip: String,
     time: String,
@@ -35,24 +35,21 @@ fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
 }
 
 // Convert line to logentry
-fn make_logentry(re: &Regex, line: String) {
+fn make_logentry(re: &Regex, line: String) -> LogEntry {
     let caps = re.captures(&line).unwrap();
     let code_str = get_re_match_part(&caps, "code");
     let bytes_str = get_re_match_part(&caps, "bytes");
     let time_str = get_re_match_part(&caps, "time");
     let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z").expect("should be valid time fmt");
-    let logentry = LogEntry {
-        ip: get_re_match_part(&caps, "ip"),
-        time: time.to_string(),
+    return LogEntry {
+        ip: get_re_match_part(&caps, "ip").clone(),
+        time: time.to_string().clone(),
         method: get_re_match_part(&caps, "method"),
         code: code_str.parse().unwrap(),
         bytes: bytes_str.parse().unwrap(),
         misc: get_re_match_part(&caps, "misc"),
         ua: get_re_match_part(&caps, "ua"),
     };
-    dbg!(logentry);
-    println!("line: {}", line);
-    println!("\n");
 }
 
 fn main() {
@@ -65,7 +62,9 @@ fn main() {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(line) = line {
-                make_logentry(&re, line);
+                let logentry = make_logentry(&re, line);
+                dbg!(logentry);
+                println!("\n")
             }
         }
     } else {
