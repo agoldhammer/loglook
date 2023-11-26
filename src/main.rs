@@ -58,12 +58,13 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
 
 fn main() {
     // regex for parsing nginx log lines in default setup for loal server
+    let logfname = "./access.log";
     let re = Regex::new(
                     r#"(?<ip>\S+) - - \[(?<time>.+)\] "(?<method>.+)" (?<code>\d+) (?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
                 )
                 .unwrap();
     let mut logentries: Vec<LogEntry> = Vec::new();
-    if let Ok(lines) = read_lines("./access.log") {
+    if let Ok(lines) = read_lines(logfname) {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(line) = line {
@@ -72,11 +73,11 @@ fn main() {
         }
         for logentry in &logentries {
             dbg!(logentry);
-            println!("\n")
+            println!("\n");
         }
         println!("No. entries: {}", logentries.len())
     } else {
         println!("Error WTF?");
-        process::exit(1)
+        process::exit(1);
     }
 }
