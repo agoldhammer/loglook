@@ -8,6 +8,7 @@ use std::net::IpAddr;
 use chrono::DateTime;
 use std::vec::Vec;
 use clap::Parser;
+use dns_lookup::lookup_addr;
 
 #[derive(Parser)]
 struct Cli {
@@ -32,8 +33,14 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
     P: AsRef<Path>,
 {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
+    match File::open(filename) {
+        Ok(file) => {Ok(io::BufReader::new(file).lines())}
+        
+        Err(e) => {
+            println!("Error opening file: {:?}", e.kind());
+            process::exit(1);
+        }
+    }
 }
 
 fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
@@ -79,6 +86,7 @@ fn process_logfile(path: &std::path::PathBuf) {
         }
         for logentry in &logentries {
             dbg!(logentry);
+            // get_hostname(&(logentry.ip));
             println!("\n");
         }
         println!("No. entries: {}", logentries.len())
@@ -89,7 +97,18 @@ fn process_logfile(path: &std::path::PathBuf) {
 
 }
 
+// fn get_hostname(ip: &IpAddr) {
+//     match lookup_addr(ip) {
+//         Ok(hostname) => {println!("host: {}", hostname)}
+//         Err(e) => {println!("err looking up {}", e)}
+//     }
+// }
+
 fn main() {
+    let ip_str = "162.243.141.14";
+    let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
+    let host = lookup_addr(&ip).unwrap();
+    println!("host: {}", host);
     let args = Cli::parse();
     println!("Opening file: {:?}", args.path);
     process_logfile(&args.path);
