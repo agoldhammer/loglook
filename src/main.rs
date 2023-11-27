@@ -67,7 +67,7 @@ fn main() {
 
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
-                    r#"(?<ip>\S+) - - \[(?<time>.+)\] "(?<method>.+)" (?<code>\d+) (?<bytes>\d+) "(?<misc>.+)" "(?<ua>.+)""#,
+                    r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<bytes>\d+) "(?<misc>.*)" "(?<ua>.*)""#,
                 )
                 .unwrap();
     let mut logentries: Vec<LogEntry> = Vec::new();
@@ -75,8 +75,8 @@ fn main() {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(line) = line {
-                let l = line.clone();
-                dbg!("line: {}", l);
+                // let l = line.clone();
+                // dbg!("line: {}", l);
                 logentries.push(make_logentry(&re, line));
             }
         }
