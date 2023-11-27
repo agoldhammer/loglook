@@ -61,17 +61,14 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
-fn main() {
-    let args = Cli::parse();
-    println!("Opening file: {:?}", args.path);
-
+fn process_logfile(path: &std::path::PathBuf) {
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
                     r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<bytes>\d+) "(?<misc>.*)" "(?<ua>.*)""#,
                 )
                 .unwrap();
     let mut logentries: Vec<LogEntry> = Vec::new();
-    if let Ok(lines) = read_lines(args.path) {
+    if let Ok(lines) = read_lines(path) {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(line) = line {
@@ -89,4 +86,11 @@ fn main() {
         println!("Error WTF?");
         process::exit(1);
     }
+
+}
+
+fn main() {
+    let args = Cli::parse();
+    println!("Opening file: {:?}", args.path);
+    process_logfile(&args.path);
 }
