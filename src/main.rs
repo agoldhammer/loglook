@@ -50,7 +50,11 @@ fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
 
 // Convert line to logentry
 fn make_logentry(re: &Regex, line: String) -> LogEntry {
-    let caps = re.captures(&line).unwrap();
+    let caps = match re.captures(&line) {
+        Some(x) => x,
+        None => {println!("Failed to parse line: {:?}", line);
+                 process::exit(255)}
+    };
     let ip_str = get_re_match_part(&caps, "ip");
     let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
     let code_str = get_re_match_part(&caps, "code");
