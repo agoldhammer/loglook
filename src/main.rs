@@ -1,18 +1,19 @@
 // use std::error::Error;
 use regex::{Captures, Regex};
+use std::error::Error;
 use std::fs::File;
-use std::io::{self, BufRead};
-use std::path::Path;
+use std::io::{self, BufRead, BufReader};
+use std::path::PathBuf;
 use std::process;
 use std::net::IpAddr;
 use chrono::DateTime;
 use std::vec::Vec;
 use clap::Parser;
-use dns_lookup::lookup_addr;
+// use dns_lookup::lookup_addr;
 
 #[derive(Parser)]
 struct Cli {
-    path: std::path::PathBuf
+    path: PathBuf
 }
 
 #[allow(dead_code)]
@@ -27,20 +28,10 @@ struct LogEntry {
     ua: String,
 }
 
-// The output is wrapped in a Result to allow matching on errors
-// Returns an Iterator to the Reader of the lines of the file.
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<Path>,
-{
-    match File::open(filename) {
-        Ok(file) => {Ok(io::BufReader::new(file).lines())}
-        
-        Err(e) => {
-            println!("Error opening file: {:?}", e.kind());
-            process::exit(1);
-        }
-    }
+fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static> >{
+
+    let file = File::open(path)?;
+    return Ok(io::BufReader::new(file).lines());
 }
 
 fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
@@ -72,33 +63,26 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
-fn process_logfile(path: &std::path::PathBuf) {
+fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
                     r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<bytes>\d+) "(?<misc>.*)" "(?<ua>.*)""#,
                 )
                 .unwrap();
     let mut logentries: Vec<LogEntry> = Vec::new();
-    if let Ok(lines) = read_lines(path) {
-        // Consumes the iterator, returns an (Optional) String
-        for line in lines {
-            if let Ok(line) = line {
-                // let l = line.clone();
-                // dbg!("line: {}", l);
-                logentries.push(make_logentry(&re, line));
-            }
+    let lines = read_lines(path)?;
+    for line in lines {
+        if let Ok(line) = line {
+            logentries.push(make_logentry(&re, line));
         }
-        for logentry in &logentries {
-            dbg!(logentry);
-            // get_hostname(&(logentry.ip));
-            println!("\n");
-        }
-        println!("No. entries: {}", logentries.len())
-    } else {
-        println!("Error WTF?");
-        process::exit(1);
     }
-
+    for logentry in &logentries {
+        dbg!(logentry);
+        // get_hostname(&(logentry.ip));
+        println!("\n");
+    }
+    println!("No. entries: {}", logentries.len());
+    return Ok(());
 }
 
 // fn get_hostname(ip: &IpAddr) {
@@ -108,17 +92,17 @@ fn process_logfile(path: &std::path::PathBuf) {
 //     }
 // }
 
-fn run(path: &str) {
-    process_logfile(path);
-}
 
 fn main() {
-    let ip_str = "162.243.141.14";
-    let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
-    let host = lookup_addr(&ip).unwrap();
-    println!("host: {}", host);
+    // let ip_str = "162.243.141.14";
+    // let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
+    // let host = lookup_addr(&ip).unwrap();
+    // println!("host: {}", host);
     let args = Cli::parse();
     println!("Opening file: {:?}", args.path);
     // process_logfile(&args.path);
-    run(&args.path);
+    if let Err(e) = run(&args.path) {
+        println!("Application error: {}", e);
+        process::exit(1);
+    }
 }
