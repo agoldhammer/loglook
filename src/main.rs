@@ -108,6 +108,10 @@ fn process_logfile(path: &std::path::PathBuf) {
 //     }
 // }
 
+fn run(path: &str) {
+    process_logfile(path);
+}
+
 fn main() {
     let ip_str = "162.243.141.14";
     let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
@@ -115,5 +119,6 @@ fn main() {
     println!("host: {}", host);
     let args = Cli::parse();
     println!("Opening file: {:?}", args.path);
-    process_logfile(&args.path);
+    // process_logfile(&args.path);
+    run(&args.path);
 }
