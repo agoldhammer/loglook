@@ -70,13 +70,10 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
                     r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
                 )
                 .unwrap();
-    let mut logentries: Vec<LogEntry> = Vec::new();
     let lines = read_lines(path)?;
-    for line in lines {
-        if let Ok(line) = line {
-            logentries.push(make_logentry(&re, line));
-        }
-    }
+    let logentries = lines
+        .map(|line| make_logentry(&re, line.unwrap()))
+        .collect();
     print_logentries(&logentries);
     println!("No. entries: {}", logentries.len());
     return Ok(());
