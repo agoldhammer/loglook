@@ -18,8 +18,8 @@ struct LogEntry {
     time: String,
     method: String,
     code: u32,
-    bytes: u32,
-    misc: String,
+    nbytes: u32,
+    referrer: String,
     ua: String,
 }
 
@@ -43,7 +43,7 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     let ip_str = get_re_match_part(&caps, "ip");
     let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
     let code_str = get_re_match_part(&caps, "code");
-    let bytes_str = get_re_match_part(&caps, "bytes");
+    let nbytes_str = get_re_match_part(&caps, "nbytes");
     let time_str = get_re_match_part(&caps, "time");
     let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z").expect("should be valid time fmt");
     return LogEntry {
@@ -51,8 +51,8 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
         time: time.to_string(),
         method: get_re_match_part(&caps, "method"),
         code: code_str.parse().unwrap(),
-        bytes: bytes_str.parse().unwrap(),
-        misc: get_re_match_part(&caps, "misc"),
+        nbytes: nbytes_str.parse().unwrap(),
+        referrer: get_re_match_part(&caps, "referrer"),
         ua: get_re_match_part(&caps, "ua"),
     };
 }
@@ -60,7 +60,7 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
-                    r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<bytes>\d+) "(?<misc>.*)" "(?<ua>.*)""#,
+                    r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
                 )
                 .unwrap();
     let mut logentries: Vec<LogEntry> = Vec::new();
