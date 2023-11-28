@@ -37,7 +37,7 @@ fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
 fn make_logentry(re: &Regex, line: String) -> LogEntry {
     let caps = match re.captures(&line) {
         Some(x) => x,
-        None => {println!("Failed to parse line: {:?}", line);
+        None => {eprintln!("Failed to parse line: {:?}", line);
                  process::exit(255)}
     };
     let ip_str = get_re_match_part(&caps, "ip");
@@ -57,6 +57,13 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
+fn print_logentries(logentries: &Vec<LogEntry>) {
+    for logentry in logentries {
+        dbg!(&logentry);
+        println!("\n");
+    }
+}
+
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
@@ -70,11 +77,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
             logentries.push(make_logentry(&re, line));
         }
     }
-    for logentry in &logentries {
-        dbg!(logentry);
-        // get_hostname(&(logentry.ip));
-        println!("\n");
-    }
+    print_logentries(&logentries);
     println!("No. entries: {}", logentries.len());
     return Ok(());
 }

@@ -15,7 +15,7 @@ fn main() {
     println!("Opening file: {:?}", args.path);
     // process_logfile(&args.path);
     if let Err(e) = loglook::run(&args.path) {
-        println!("Application error: {}", e);
+        eprintln!("Application error: {}", e);
         process::exit(1);
     }
 }
