@@ -9,7 +9,7 @@ use chrono::DateTime;
 use std::vec::Vec;
 // use dns_lookup::lookup_addr;
 
-
+// LogEntry holds info derived from one line of log file
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -22,6 +22,19 @@ struct LogEntry {
     referrer: String,
     ua: String,
 }
+
+// BadLine holds line that ccannot be parsed by the log line parser
+#[allow(dead_code)]
+struct BadLine {
+    bad_line: String,
+}
+#[allow(dead_code)]
+// LogEntries is a vector of LogEntryOrBadLine
+enum LogEntryOrBadLine {
+    LogEntry,
+    BadLine
+}
+
 
 fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static> >{
     let file = File::open(path)?;
