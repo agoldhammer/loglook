@@ -1,5 +1,6 @@
 use regex::{Captures, Regex};
 use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
@@ -24,14 +25,30 @@ struct LogEntry {
     line: String,
 }
 
+impl fmt::Display for LogEntry {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "decoding {}:\n", self.line)?;
+        write!(f, "  ip: {}\n", self.ip)?;
+        write!(f, "  time: {}\n", self.time)?;
+        write!(f, "  method: {}\n", self.method)?;
+        write!(f, "  code: {}\n", self.code)?;
+        write!(f, "  nbytes: {}\n", self.nbytes)?;
+        write!(f, "  referrer: {}\n", self.referrer)?;
+        write!(f, "  user agent: {}\n", self.ua)?;
+        write!(f, "end\n")
+    }
+
+}
+
 // BadLine holds line that ccannot be parsed by the log line parser
 
 
 // #[cfg(test)]
 // mod tests {
-//     fn badline_print() {
-//         let badline = super::BadLine {bad_line: String::from("badline")};
-//         assert_eq!(badline.to_string(), "badline");
+//     fn logentry_print() {
+//         let expected; 
+//         let logentry = super::LogEntry {bad_line: String::from("badline")};
+//         assert_eq!(logentry.to_string(), expected);
     
 //     }
 // }
@@ -75,9 +92,9 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
 
 fn print_logentries(logentries: &Vec<LogEntry>) {
     for logentry in logentries {
-        dbg!(&logentry);
-        println!("\n");
+        println!("{}", &logentry);
     }
+    println!("Total {} loglines processed", logentries.len());
 }
 
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
@@ -87,11 +104,11 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
                 )
                 .unwrap();
     let lines = read_lines(path)?;
+    // process each logline and collect parsed lines into Vec<LogEntry>
     let logentries = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
     print_logentries(&logentries);
-    println!("No. entries: {}", logentries.len());
     return Ok(());
 }
 
