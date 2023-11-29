@@ -1,4 +1,5 @@
 use regex::{Captures, Regex};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
@@ -94,7 +95,7 @@ fn print_logentries(logentries: &Vec<LogEntry>) {
     for logentry in logentries {
         println!("{}", &logentry);
     }
-    println!("Total {} loglines processed", logentries.len());
+    println!("Total {} loglines processed\n", logentries.len());
 }
 
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
@@ -104,11 +105,19 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
                 )
                 .unwrap();
     let lines = read_lines(path)?;
+    let mut ips = HashSet::new();
     // process each logline and collect parsed lines into Vec<LogEntry>
     let logentries = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
     print_logentries(&logentries);
+    for logentry in logentries {
+        ips.insert(logentry.ip);
+    }
+    let ips_vec: Vec<IpAddr> = ips.into_iter().collect();
+    for (index, ip) in ips_vec.into_iter().enumerate()  {
+        println!("{}: {}", index, ip);
+    }
     return Ok(());
 }
 
