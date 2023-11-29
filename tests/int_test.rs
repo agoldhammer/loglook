@@ -2,7 +2,8 @@
 use loglook::*;
 
 
-#[test]
-fn dummy() {
-    assert_eq!(1, 0);
-}
+// #[test]
+// fn badline_test () {
+//     let badline: loglook::BadLine = "bad line";
+//     assert_eq!(badline.to_string(), "bad line");
+// }

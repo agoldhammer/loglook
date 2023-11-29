@@ -21,19 +21,20 @@ struct LogEntry {
     nbytes: u32,
     referrer: String,
     ua: String,
+    line: String,
 }
 
 // BadLine holds line that ccannot be parsed by the log line parser
-#[allow(dead_code)]
-struct BadLine {
-    bad_line: String,
-}
-#[allow(dead_code)]
-// LogEntries is a vector of LogEntryOrBadLine
-enum LogEntryOrBadLine {
-    LogEntry,
-    BadLine
-}
+
+
+// #[cfg(test)]
+// mod tests {
+//     fn badline_print() {
+//         let badline = super::BadLine {bad_line: String::from("badline")};
+//         assert_eq!(badline.to_string(), "badline");
+    
+//     }
+// }
 
 
 fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static> >{
@@ -51,7 +52,8 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     let caps = match re.captures(&line) {
         Some(x) => x,
         None => {eprintln!("Failed to parse line: {:?}", line);
-                 process::exit(255)}
+                process::exit(255);
+                }
     };
     let ip_str = get_re_match_part(&caps, "ip");
     let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
@@ -67,6 +69,7 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
         nbytes: nbytes_str.parse().unwrap(),
         referrer: get_re_match_part(&caps, "referrer"),
         ua: get_re_match_part(&caps, "ua"),
+        line: line,
     };
 }
 
