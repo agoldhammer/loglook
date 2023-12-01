@@ -10,7 +10,6 @@ use std::net::IpAddr;
 use chrono::DateTime;
 use std::vec::Vec;
 
-// use dns_lookup::lookup_addr;
 
 pub mod ips;
 
@@ -125,13 +124,3 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
     // println!("\n# unique ips: {}",  n_ips);
     return Ok(());
 }
-
-// fn get_hostname(ip: &IpAddr) {
-//     match lookup_addr(ip) {
-//         Ok(hostname) => {println!("host: {}", hostname)}
-//         Err(e) => {println!("err looking up {}", e)}
-//     }
-// }
-
-
-
