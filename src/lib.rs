@@ -9,10 +9,12 @@ use std::process;
 use std::net::IpAddr;
 use chrono::DateTime;
 use std::vec::Vec;
+
 // use dns_lookup::lookup_addr;
 
-// LogEntry holds info derived from one line of log file
+pub mod ips;
 
+// LogEntry holds info derived from one line of log file
 #[allow(dead_code)]
 #[derive(Debug)]
 struct LogEntry {
@@ -114,11 +116,13 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
     for logentry in logentries {
         ips.insert(logentry.ip);
     }
-    let n_ips = ips.len();
-    for ip in ips {
-        println!("{}", ip);
-    }
-    println!("\n# unique ips: {}",  n_ips);
+    ips::printips(ips);
+    // let n_ips = ips.len();
+    // for ip in ips {
+    //     // println!("{}", ip);
+    //     ips::printip(ip);
+    // }
+    // println!("\n# unique ips: {}",  n_ips);
     return Ok(());
 }
 
@@ -129,11 +133,5 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
 //     }
 // }
 
-// Note: https://github.com/mersinvald/batch_resolve
-// https://www.reddit.com/r/rust/comments/6a9i9a/batch_resolve_fast_asynchronous_dns_resolver/
-
-//https://bryangilbert.com/post/code/rust/adventures-futures-tokio-rust/
-//https://tech.marksblogg.com/rdns-domain-name-tld-extract-rust.html
-//https://askubuntu.com/questions/813275/how-to-check-a-bulk-of-ip-for-reverse-dns
 
 
