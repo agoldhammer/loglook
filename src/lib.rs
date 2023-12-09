@@ -81,13 +81,6 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
-// fn print_logentries(logentries: &Vec<LogEntry>) {
-//     for logentry in logentries {
-//         println!("{}", &logentry);
-//     }
-//     println!("Total {} loglines processed\n", logentries.len());
-// }
-
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
@@ -100,14 +93,11 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let logentries: Vec<LogEntry> = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
-
-    // print_logentries(&logentries);
-    // Collect unduplicated ips in a set
     for logentry in &logentries {
         ips.insert(logentry.ip.clone());
     }
 
-    // TODO new stuff
+    // !Added new stuff
     let mut ips2logentries = HashMap::new();
     for ip in ips.iter() {
         let mut v = Vec::new();
@@ -115,9 +105,6 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             v.push(le);
         }
         ips2logentries.insert(ip, v);
-        // dbg!(les);
-        // dbg!(ips2logentries);
-        // let assoc_les = logentries.iter().filter(|x| x.ip == ip);
     }
     dbg!(&ips2logentries);
     for (ip, les) in ips2logentries {
@@ -128,7 +115,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         println! {"===================="}
     }
 
-    // todo new stuff
+    // ! end of  new stuff
     ips::printips(&ips);
 
     return Ok(());
