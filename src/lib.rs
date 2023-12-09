@@ -106,7 +106,6 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         }
         ips2logentries.insert(ip, v);
     }
-    dbg!(&ips2logentries);
     for (ip, les) in ips2logentries {
         println!("IP: {ip}----------");
         for logentry in les {
