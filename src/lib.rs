@@ -81,12 +81,12 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
-fn print_logentries(logentries: &Vec<LogEntry>) {
-    for logentry in logentries {
-        println!("{}", &logentry);
-    }
-    println!("Total {} loglines processed\n", logentries.len());
-}
+// fn print_logentries(logentries: &Vec<LogEntry>) {
+//     for logentry in logentries {
+//         println!("{}", &logentry);
+//     }
+//     println!("Total {} loglines processed\n", logentries.len());
+// }
 
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // regex for parsing nginx log lines in default setup for loal server
@@ -97,15 +97,15 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let lines = read_lines(path)?;
     let mut ips = HashSet::new();
     // process each logline and collect parsed lines into Vec<LogEntry>
-    let logentries = lines
+    let logentries: Vec<LogEntry> = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
 
-    print_logentries(&logentries);
+    // print_logentries(&logentries);
+    // Collect unduplicated ips in a set
     for logentry in &logentries {
         ips.insert(logentry.ip.clone());
     }
-    ips::printips(&ips);
 
     // TODO new stuff
     let mut ips2logentries = HashMap::new();
@@ -129,5 +129,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     // todo new stuff
+    ips::printips(&ips);
+
     return Ok(());
 }
