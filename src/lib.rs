@@ -1,15 +1,14 @@
+use chrono::DateTime;
 use regex::{Captures, Regex};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::process;
-use std::net::IpAddr;
-use chrono::DateTime;
 use std::vec::Vec;
-
 
 pub mod ips;
 
@@ -39,24 +38,9 @@ impl fmt::Display for LogEntry {
         write!(f, "  user agent: {}\n", self.ua)?;
         write!(f, "end\n")
     }
-
 }
 
-// BadLine holds line that ccannot be parsed by the log line parser
-
-
-// #[cfg(test)]
-// mod tests {
-//     fn logentry_print() {
-//         let expected; 
-//         let logentry = super::LogEntry {bad_line: String::from("badline")};
-//         assert_eq!(logentry.to_string(), expected);
-    
-//     }
-// }
-
-
-fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static> >{
+fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static>> {
     let file = File::open(path)?;
     return Ok(io::BufReader::new(file).lines());
 }
@@ -70,16 +54,18 @@ fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
 fn make_logentry(re: &Regex, line: String) -> LogEntry {
     let caps = match re.captures(&line) {
         Some(x) => x,
-        None => {eprintln!("Failed to parse line: {:?}", line);
-                process::exit(255);
-                }
+        None => {
+            eprintln!("Failed to parse line: {:?}", line);
+            process::exit(255);
+        }
     };
     let ip_str = get_re_match_part(&caps, "ip");
     let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
     let code_str = get_re_match_part(&caps, "code");
     let nbytes_str = get_re_match_part(&caps, "nbytes");
     let time_str = get_re_match_part(&caps, "time");
-    let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z").expect("should be valid time fmt");
+    let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z")
+        .expect("should be valid time fmt");
     return LogEntry {
         ip: ip,
         time: time.to_string(),
@@ -99,7 +85,7 @@ fn print_logentries(logentries: &Vec<LogEntry>) {
     println!("Total {} loglines processed\n", logentries.len());
 }
 
-pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
+pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
                     r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
@@ -116,11 +102,5 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>>{
         ips.insert(logentry.ip);
     }
     ips::printips(ips);
-    // let n_ips = ips.len();
-    // for ip in ips {
-    //     // println!("{}", ip);
-    //     ips::printip(ip);
-    // }
-    // println!("\n# unique ips: {}",  n_ips);
     return Ok(());
 }
