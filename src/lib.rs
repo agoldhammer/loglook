@@ -1,6 +1,6 @@
 use chrono::DateTime;
 use regex::{Captures, Regex};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
