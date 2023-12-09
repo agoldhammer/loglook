@@ -17,6 +17,7 @@ pub mod ips;
 #[derive(Debug)]
 struct LogEntry {
     ip: IpAddr,
+    hostname: String,
     time: String,
     method: String,
     code: u32,
@@ -30,6 +31,7 @@ impl fmt::Display for LogEntry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "decoding {}:\n", self.line)?;
         write!(f, "  ip: {}\n", self.ip)?;
+        write!(f, "  hostname: {}\n", self.hostname)?;
         write!(f, "  time: {}\n", self.time)?;
         write!(f, "  method: {}\n", self.method)?;
         write!(f, "  code: {}\n", self.code)?;
@@ -68,6 +70,7 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
         .expect("should be valid time fmt");
     return LogEntry {
         ip: ip,
+        hostname: "".to_string(),
         time: time.to_string(),
         method: get_re_match_part(&caps, "method"),
         code: code_str.parse().unwrap(),
@@ -97,10 +100,34 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let logentries = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
+
     print_logentries(&logentries);
-    for logentry in logentries {
-        ips.insert(logentry.ip);
+    for logentry in &logentries {
+        ips.insert(logentry.ip.clone());
     }
-    ips::printips(ips);
+    ips::printips(&ips);
+
+    // TODO new stuff
+    let mut ips2logentries = HashMap::new();
+    for ip in ips.iter() {
+        let mut v = Vec::new();
+        for le in logentries.iter().filter(|x| x.ip == *ip) {
+            v.push(le);
+        }
+        ips2logentries.insert(ip, v);
+        // dbg!(les);
+        // dbg!(ips2logentries);
+        // let assoc_les = logentries.iter().filter(|x| x.ip == ip);
+    }
+    dbg!(&ips2logentries);
+    for (ip, les) in ips2logentries {
+        println!("IP: {ip}----------");
+        for logentry in les {
+            println!("{logentry}");
+        }
+        println! {"===================="}
+    }
+
+    // todo new stuff
     return Ok(());
 }
