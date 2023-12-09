@@ -97,7 +97,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         ips.insert(logentry.ip.clone());
     }
 
-    // !Added new stuff
+    // * Added new stuff
     let mut ips2logentries = HashMap::new();
     for ip in ips.iter() {
         let mut v = Vec::new();
@@ -115,7 +115,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         println! {"===================="}
     }
 
-    // ! end of  new stuff
+    // * end of  new stuff
     ips::printips(&ips);
 
     return Ok(());
