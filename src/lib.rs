@@ -2,7 +2,6 @@ use chrono::DateTime;
 use regex::{Captures, Regex};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-// use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::net::IpAddr;
@@ -25,7 +24,7 @@ fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
     return String::from(part);
 }
 
-// Convert line to logentry
+// * Convert raw log line to logentry using supplied regex to parse the line
 fn make_logentry(re: &Regex, line: String) -> LogEntry {
     let caps = match re.captures(&line) {
         Some(x) => x,
@@ -86,7 +85,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
     for (ip, hls) in map_ips_to_logents {
         println!("IP: {ip}----------");
-        println!("Log Entry: {hls}");
+        println!("{hls}");
         println! {"===================="};
         // dbg!(hls);
     }

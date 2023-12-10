@@ -15,6 +15,10 @@ pub struct LogEntry {
     pub line: String,
 }
 
+// * type to hold both a hostname and a vector of
+// * LogEntry types representing activity on that host
+// * will be collected in a hash map
+// * called map_ips_to_logents with ip as index
 #[derive(Debug)]
 pub struct HostLogs {
     pub hostname: String,
