@@ -1,4 +1,5 @@
 use chrono::DateTime;
+use console::style;
 use regex::{Captures, Regex};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -72,9 +73,9 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let mut map_ips_to_logents = HashMap::new();
     for ip in ips.iter() {
         let mut v = Vec::new();
-        for le in logentries.clone() {
+        for le in &logentries {
             if le.ip == *ip {
-                v.push(le);
+                v.push(le.clone());
             }
         }
         let hl = HostLogs {
@@ -83,10 +84,10 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         };
         map_ips_to_logents.insert(ip, hl);
     }
-    for (ip, hls) in map_ips_to_logents {
-        println!("IP: {ip}----------");
-        println!("{hls}");
-        println! {"===================="};
+    for (ip, hl) in map_ips_to_logents {
+        println!("{}: {}", style("IP").bold().red(), style(ip).green());
+        println!("{hl}");
+        println! {"{}", style("_".repeat(80)).cyan().bright()};
         // dbg!(hls);
     }
 

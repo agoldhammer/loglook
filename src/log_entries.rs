@@ -1,4 +1,5 @@
 // LogEntry holds info derived from one line of log file
+use console::style;
 use std::fmt;
 use std::net::IpAddr;
 
@@ -27,7 +28,13 @@ pub struct HostLogs {
 
 impl fmt::Display for HostLogs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Hostname: {}\n---\n", self.hostname).expect("shd wrt ok");
+        write!(
+            f,
+            "{}: {}\n---\n",
+            style("Hostname").blue().bold(),
+            style(&self.hostname).blue()
+        )
+        .expect("shd wrt ok");
         for log_entry in self.log_entries.iter() {
             write!(f, "{}\n", log_entry).expect("shd wrt ok");
         }
