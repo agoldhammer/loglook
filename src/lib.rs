@@ -87,7 +87,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     for (ip, hl) in map_ips_to_logents {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
-        println! {"{}", style("_".repeat(80)).cyan().bright()};
+        println! {"{}\n", style("_".repeat(80)).cyan().bright()};
         // dbg!(hls);
     }
 

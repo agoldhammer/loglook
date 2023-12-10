@@ -38,7 +38,7 @@ impl fmt::Display for HostLogs {
         for log_entry in self.log_entries.iter() {
             write!(f, "{}\n", log_entry).expect("shd wrt ok");
         }
-        write!(f, "---------")
+        write!(f, "{}", style("-".repeat(40)).cyan())
     }
 }
 
