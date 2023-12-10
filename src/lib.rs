@@ -70,7 +70,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     // * Added new stuff
-    let mut ips2logentries = HashMap::new();
+    let mut map_ips_to_logents = HashMap::new();
     for ip in ips.iter() {
         let mut v = Vec::new();
         for le in logentries.clone() {
@@ -82,9 +82,9 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             hostname: "".to_string(),
             log_entries: v,
         };
-        ips2logentries.insert(ip, hl);
+        map_ips_to_logents.insert(ip, hl);
     }
-    for (ip, hls) in ips2logentries {
+    for (ip, hls) in map_ips_to_logents {
         println!("IP: {ip}----------");
         println!("Log Entry: {hls}");
         println! {"===================="};
