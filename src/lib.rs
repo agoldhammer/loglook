@@ -53,27 +53,15 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
-pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
-    // regex for parsing nginx log lines in default setup for loal server
-    let re = Regex::new(
-                    r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
-                )
-                .unwrap();
-    let lines = read_lines(path)?;
-    let mut ips = HashSet::new();
-    // * process each logline and collect parsed lines into Vec<LogEntry>
-    let logentries: Vec<LogEntry> = lines
-        .map(|line| make_logentry(&re, line.unwrap()))
-        .collect();
-    for logentry in &logentries {
-        ips.insert(logentry.ip.clone());
-    }
-
-    // * Added new stuff
+fn make_ip_map<'a, 'b>(
+    ips: &'a HashSet<IpAddr>,
+    logentries: &'b Vec<LogEntry>,
+) -> HashMap<&'a IpAddr, HostLogs> {
     let mut map_ips_to_logents = HashMap::new();
+
     for ip in ips.iter() {
         let mut v = Vec::new();
-        for le in &logentries {
+        for le in logentries {
             if le.ip == *ip {
                 v.push(le.clone());
             }
@@ -84,14 +72,31 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         };
         map_ips_to_logents.insert(ip, hl);
     }
+    map_ips_to_logents
+}
+
+pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    // regex for parsing nginx log lines in default setup for loal server
+    let re = Regex::new(
+                    r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
+                )
+                .unwrap();
+    let lines = read_lines(path)?;
+    let mut ips: HashSet<IpAddr> = HashSet::new();
+    // * process each logline and collect parsed lines into Vec<LogEntry>
+    let logentries: Vec<LogEntry> = lines
+        .map(|line| make_logentry(&re, line.unwrap()))
+        .collect();
+    for logentry in &logentries {
+        ips.insert(logentry.ip.clone());
+    }
+    let map_ips_to_logents = make_ip_map(&ips, &logentries);
     for (ip, hl) in map_ips_to_logents {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
         println! {"{}\n", style("_".repeat(80)).cyan().bright()};
         // dbg!(hls);
     }
-
-    // * end of  new stuff
     ips::printips(&ips);
 
     return Ok(());
