@@ -20,7 +20,7 @@ pub struct LogEntry {
 // * LogEntry types representing activity on that host
 // * will be collected in a hash map
 // * called map_ips_to_logents with ip as index
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HostLogs {
     pub hostname: String,
     pub log_entries: Vec<LogEntry>,

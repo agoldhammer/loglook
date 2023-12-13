@@ -60,16 +60,10 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
                 )
                 .unwrap();
     let lines = read_lines(path)?;
-    let mut ips: HashSet<IpAddr> = HashSet::new();
     // * process each logline and collect parsed lines into Vec<LogEntry>
     let logentries: Vec<LogEntry> = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
-
-    // * improvement starts here
-    for logentry in &logentries {
-        ips.insert(logentry.ip.clone());
-    }
 
     let mut map_ips_to_hl: HashMap<IpAddr, HostLogs> = HashMap::new();
     for logentry in logentries.iter() {
@@ -89,13 +83,15 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             map_ips_to_hl.insert(logentry.ip.clone(), hl);
         }
     }
-    // let map_ips_to_logents = make_ip_map(&ips, &logentries);
+
+    let mut ips = HashSet::new();
     for (ip, hl) in map_ips_to_hl {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
         println! {"{}\n", style("_".repeat(80)).cyan().bright()};
-        // dbg!(hls);
+        ips.insert(ip);
     }
+
     ips::printips(&ips);
 
     return Ok(());
