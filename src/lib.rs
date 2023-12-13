@@ -53,28 +53,6 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
-fn make_ip_map<'a, 'b>(
-    ips: &'a HashSet<IpAddr>,
-    logentries: &'b Vec<LogEntry>,
-) -> HashMap<&'a IpAddr, HostLogs> {
-    let mut map_ips_to_logents = HashMap::new();
-
-    for ip in ips.iter() {
-        let mut v = Vec::new();
-        for le in logentries {
-            if le.ip == *ip {
-                v.push(le.clone());
-            }
-        }
-        let hl = HostLogs {
-            hostname: "".to_string(),
-            log_entries: v,
-        };
-        map_ips_to_logents.insert(ip, hl);
-    }
-    map_ips_to_logents
-}
-
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
@@ -87,11 +65,32 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let logentries: Vec<LogEntry> = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
+
+    // * improvement starts here
     for logentry in &logentries {
         ips.insert(logentry.ip.clone());
     }
-    let map_ips_to_logents = make_ip_map(&ips, &logentries);
-    for (ip, hl) in map_ips_to_logents {
+
+    let mut map_ips_to_hl: HashMap<IpAddr, HostLogs> = HashMap::new();
+    for logentry in logentries.iter() {
+        if map_ips_to_hl.contains_key(&logentry.ip) {
+            // * ip is already in map, so append to existing hl HostLogs
+            map_ips_to_hl
+                .entry(logentry.ip)
+                .and_modify(|hl| hl.log_entries.push(logentry.clone()));
+        } else {
+            // * this is first in map with this ip
+            let mut v = Vec::new();
+            v.push(logentry.clone());
+            let hl = HostLogs {
+                hostname: "".to_string(), // will be filled later
+                log_entries: v,
+            };
+            map_ips_to_hl.insert(logentry.ip.clone(), hl);
+        }
+    }
+    // let map_ips_to_logents = make_ip_map(&ips, &logentries);
+    for (ip, hl) in map_ips_to_hl {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
         println! {"{}\n", style("_".repeat(80)).cyan().bright()};
