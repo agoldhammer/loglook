@@ -33,7 +33,7 @@ impl fmt::Display for RevLookupData {
     }
 }
 
-// Do reverse lookup on ip_str, send result out on channel tx
+// * Do reverse lookup on ip_str, send result out on channel tx
 pub async fn lkup_hostnames(ip: IpAddr, tx: mpsc::Sender<RevLookupData>) {
     // async fn get_name(ip_str: &String)  . {
     const TIMEOUT_MS: u64 = 2500;

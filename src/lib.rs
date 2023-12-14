@@ -10,12 +10,9 @@ use std::path::PathBuf;
 use std::process;
 use std::vec::Vec;
 
-// use hickory_resolver::TokioAsyncResolver;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
-// use tokio::time::timeout;
 
-// pub mod ips;
 pub mod lkup;
 pub mod log_entries;
 
@@ -121,7 +118,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // * output stuff
     drop(tx); // have to drop the original channel that has been cloned for each task
     while let Some(rev_lookup_data) = rx.recv().await {
-        println!("rcvd: {}", rev_lookup_data);
         let ip = rev_lookup_data.ip_addr;
         let host = &rev_lookup_data.ptr_records[0];
         ips_to_hl_map
