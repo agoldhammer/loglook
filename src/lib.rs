@@ -77,14 +77,15 @@ fn logents_to_ips_to_hl_map(logentries: &Vec<LogEntry>) -> HashMap<IpAddr, HostL
                 hostname: "".to_string(), // will be filled later
                 log_entries: v,
             };
-            map_ips_to_hl.insert(logentry.ip.clone(), hl);
+            map_ips_to_hl.insert(logentry.ip, hl);
         }
     }
     map_ips_to_hl
 }
 
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
-    // regex for parsing nginx log lines in default setup for loal server
+    // * input stage
+    // * regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
                     r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
                 )
@@ -94,6 +95,9 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let logentries: Vec<LogEntry> = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
+
+    // * end of input stage, resulting in raw logentries
+    // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
 
     let ip_set = logents_to_ips_set(&logentries);
     let ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
