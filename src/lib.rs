@@ -53,7 +53,7 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
-fn ips_to_hashset(logentries: &Vec<LogEntry>) -> HashSet<IpAddr> {
+fn logents_to_ips_set(logentries: &Vec<LogEntry>) -> HashSet<IpAddr> {
     let mut ips = HashSet::new();
     for logentry in logentries {
         ips.insert(logentry.ip);
@@ -61,20 +61,7 @@ fn ips_to_hashset(logentries: &Vec<LogEntry>) -> HashSet<IpAddr> {
     ips
 }
 
-pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
-    // regex for parsing nginx log lines in default setup for loal server
-    let re = Regex::new(
-                    r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
-                )
-                .unwrap();
-    let lines = read_lines(path)?;
-    // * process each logline and collect parsed lines into Vec<LogEntry>
-    let logentries: Vec<LogEntry> = lines
-        .map(|line| make_logentry(&re, line.unwrap()))
-        .collect();
-
-    let ip_set = ips_to_hashset(&logentries);
-
+fn logents_to_ips_to_hl_map(logentries: &Vec<LogEntry>) -> HashMap<IpAddr, HostLogs> {
     let mut map_ips_to_hl: HashMap<IpAddr, HostLogs> = HashMap::new();
     for logentry in logentries.iter() {
         if map_ips_to_hl.contains_key(&logentry.ip) {
@@ -93,7 +80,25 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             map_ips_to_hl.insert(logentry.ip.clone(), hl);
         }
     }
+    map_ips_to_hl
+}
 
+pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    // regex for parsing nginx log lines in default setup for loal server
+    let re = Regex::new(
+                    r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
+                )
+                .unwrap();
+    let lines = read_lines(path)?;
+    // * process each logline and collect parsed lines into Vec<LogEntry>
+    let logentries: Vec<LogEntry> = lines
+        .map(|line| make_logentry(&re, line.unwrap()))
+        .collect();
+
+    let ip_set = logents_to_ips_set(&logentries);
+    let map_ips_to_hl = logents_to_ips_to_hl_map(&logentries);
+
+    // * output stuff
     for (ip, hl) in map_ips_to_hl {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
@@ -101,6 +106,7 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     ips::printips(&ip_set);
+    // * end of output stuff
 
     return Ok(());
 }
