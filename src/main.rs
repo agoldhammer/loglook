@@ -7,7 +7,8 @@ struct Cli {
     path: std::path::PathBuf,
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
+// #[tokio::main]
 async fn main() {
     // let ip_str = "162.243.141.14";
     // let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
@@ -16,8 +17,12 @@ async fn main() {
     let args = Cli::parse();
     println!("Opening file: {:?}", args.path);
     // process_logfile(&args.path);
-    if let Err(e) = loglook::run(&args.path) {
-        eprintln!("Application error: {}", e);
-        process::exit(1);
+    let result = loglook::run(&args.path).await;
+    match result {
+        Ok(()) => process::exit(0),
+        Err(e) => {
+            eprintln!("Application error: {}", e);
+            process::exit(1);
+        }
     }
 }
