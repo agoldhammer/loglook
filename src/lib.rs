@@ -96,10 +96,10 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         .collect();
 
     let ip_set = logents_to_ips_set(&logentries);
-    let map_ips_to_hl = logents_to_ips_to_hl_map(&logentries);
+    let ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
 
     // * output stuff
-    for (ip, hl) in map_ips_to_hl {
+    for (ip, hl) in ips_to_hl_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
         println! {"{}\n", style("_".repeat(80)).cyan().bright()};
