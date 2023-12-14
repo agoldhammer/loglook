@@ -15,7 +15,7 @@ use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 // use tokio::time::timeout;
 
-pub mod ips;
+// pub mod ips;
 pub mod lkup;
 pub mod log_entries;
 
@@ -106,10 +106,10 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
 
     let ip_set = logents_to_ips_set(&logentries);
-    let ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
+    let mut ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
 
     // * create channels to receive rev lkup results
-    const CHAN_BUF_SIZE: usize = 128;
+    const CHAN_BUF_SIZE: usize = 32;
     let (tx, mut rx) = mpsc::channel(CHAN_BUF_SIZE);
 
     let mut join_set = JoinSet::new();
@@ -119,6 +119,16 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     // * output stuff
+    drop(tx); // have to drop the original channel that has been cloned for each task
+    while let Some(rev_lookup_data) = rx.recv().await {
+        println!("rcvd: {}", rev_lookup_data);
+        let ip = rev_lookup_data.ip_addr;
+        let host = &rev_lookup_data.ptr_records[0];
+        ips_to_hl_map
+            .entry(ip)
+            .and_modify(|hl| hl.hostname = host.to_string());
+    }
+
     for (ip, hl) in ips_to_hl_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
@@ -128,12 +138,8 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // ips::printips(&ip_set);
     // * end of output stuff
 
-    drop(tx); // have to drop the original channel that has been cloned for each task
-    while let Some(rev_lookup_data) = rx.recv().await {
-        println!("rcvd: {}", rev_lookup_data);
-    }
     while let Some(res) = join_set.join_next().await {
-        res.expect("join error");
+        res.expect("all async chans should finish");
     }
 
     return Ok(());

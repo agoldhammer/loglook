@@ -10,8 +10,8 @@ use tokio::time::timeout;
 
 #[derive(Debug)]
 pub struct RevLookupData {
-    ip_addr: IpAddr,
-    ptr_records: Vec<String>,
+    pub ip_addr: IpAddr,
+    pub ptr_records: Vec<String>,
 }
 
 impl RevLookupData {
