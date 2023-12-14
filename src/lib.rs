@@ -10,6 +10,8 @@ use std::path::PathBuf;
 use std::process;
 use std::vec::Vec;
 
+use indicatif::ProgressBar;
+
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
@@ -98,11 +100,15 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let logentries: Vec<LogEntry> = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
+    let le_count = logentries.len();
+    println!("Log lines: {le_count}");
 
     // * end of input stage, resulting in raw logentries
     // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
 
     let ip_set = logents_to_ips_set(&logentries);
+    let pb = ProgressBar::new(ip_set.len() as u64);
+
     let mut ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
 
     // * create channels to receive rev lkup results
@@ -119,12 +125,14 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     drop(tx); // have to drop the original channel that has been cloned for each task
     while let Some(rev_lookup_data) = rx.recv().await {
         let ip = rev_lookup_data.ip_addr;
+        pb.inc(1);
+        // TODO: only using first of poss several ptr records. FIX!
         let host = &rev_lookup_data.ptr_records[0];
         ips_to_hl_map
             .entry(ip)
             .and_modify(|hl| hl.hostname = host.to_string());
     }
-
+    pb.finish_and_clear();
     for (ip, hl) in ips_to_hl_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
