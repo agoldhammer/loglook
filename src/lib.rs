@@ -53,6 +53,14 @@ fn make_logentry(re: &Regex, line: String) -> LogEntry {
     };
 }
 
+fn ips_to_hashset(logentries: &Vec<LogEntry>) -> HashSet<IpAddr> {
+    let mut ips = HashSet::new();
+    for logentry in logentries {
+        ips.insert(logentry.ip);
+    }
+    ips
+}
+
 pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // regex for parsing nginx log lines in default setup for loal server
     let re = Regex::new(
@@ -64,6 +72,8 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let logentries: Vec<LogEntry> = lines
         .map(|line| make_logentry(&re, line.unwrap()))
         .collect();
+
+    let ip_set = ips_to_hashset(&logentries);
 
     let mut map_ips_to_hl: HashMap<IpAddr, HostLogs> = HashMap::new();
     for logentry in logentries.iter() {
@@ -84,15 +94,13 @@ pub fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let mut ips = HashSet::new();
     for (ip, hl) in map_ips_to_hl {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
         println! {"{}\n", style("_".repeat(80)).cyan().bright()};
-        ips.insert(ip);
     }
 
-    ips::printips(&ips);
+    ips::printips(&ip_set);
 
     return Ok(());
 }
