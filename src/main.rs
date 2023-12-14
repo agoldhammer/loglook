@@ -1,12 +1,14 @@
 use clap::Parser;
 use std::process;
+// use tokio;
 
 #[derive(Parser)]
 struct Cli {
     path: std::path::PathBuf,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // let ip_str = "162.243.141.14";
     // let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
     // let host = lookup_addr(&ip).unwrap();
