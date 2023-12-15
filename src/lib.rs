@@ -119,25 +119,26 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     // * create channels to receive rev lkup results
     const CHAN_BUF_SIZE: usize = 32;
-    let (tx, mut rx) = mpsc::channel(CHAN_BUF_SIZE);
+    let (tx_rdns, mut rx_rdns) = mpsc::channel(CHAN_BUF_SIZE);
 
     let mut join_set = JoinSet::new();
     for ip in ip_set {
-        let txa = tx.clone();
+        let txa = tx_rdns.clone();
         join_set.spawn(async move { lkup::lkup_hostnames(ip, txa).await });
     }
 
-    let (tx2, mut rx2) = mpsc::channel(CHAN_BUF_SIZE);
+    // TODO: make rx_geo mutable when implemented
+    let (tx_geo, _rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
     let mut join_set2: JoinSet<()> = JoinSet::new();
     for ip in ip_set2 {
-        let txa2 = tx2.clone();
+        let txa2 = tx_geo.clone();
         join_set2.spawn(async move { geo::geo_lkup(ip, txa2).await });
     }
 
     // * output stuff
     // TODO: add channels to receive 2 outputs and pass on to modify hostlogs
-    drop(tx); // have to drop the original channel that has been cloned for each task
-    while let Some(rev_lookup_data) = rx.recv().await {
+    drop(tx_rdns); // have to drop the original channel that has been cloned for each task
+    while let Some(rev_lookup_data) = rx_rdns.recv().await {
         let ip = rev_lookup_data.ip_addr;
         pb.inc(1);
         // TODO: only using first of poss several ptr records. FIX!
