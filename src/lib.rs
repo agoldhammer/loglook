@@ -135,6 +135,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     // * output stuff
+    // TODO: add channels to receive 2 outputs and pass on to modify hostlogs
     drop(tx); // have to drop the original channel that has been cloned for each task
     while let Some(rev_lookup_data) = rx.recv().await {
         let ip = rev_lookup_data.ip_addr;

@@ -42,6 +42,7 @@ fn read_config() -> String {
     config.api_key
 }
 
+// TODO send results out over channel
 pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) {
     let api_key = read_config();
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
@@ -49,11 +50,5 @@ pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) {
     let maybe_text = maybe_body.unwrap().text().await;
     let text = maybe_text.unwrap(); //.text().await;
     let geodata: Geodata = serde_json::from_str(&text).unwrap();
-    // match geodata {
-    //     Ok(geodata) => geodata,
-    //     Err(e) => {
-    //         eprintln!("geo lkup failed: err {}, ip {}", e, ip)
-    //     }
-    // }
     println!("Geodata\n {}", geodata);
 }
