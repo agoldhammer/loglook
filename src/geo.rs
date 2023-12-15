@@ -4,7 +4,8 @@ use reqwest;
 use serde::Deserialize;
 use serde_json;
 use shellexpand;
-use std::error::Error;
+use std::{error::Error, net::IpAddr};
+use tokio::sync::mpsc;
 
 #[derive(Deserialize)]
 struct Config {
@@ -13,7 +14,8 @@ struct Config {
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-struct Geodata {
+pub struct Geodata {
+    ip: String,
     country_name: String,
     state_prov: String,
     city: String,
@@ -27,11 +29,18 @@ fn read_config() -> String {
     config.api_key
 }
 
-pub async fn geo_lkup() -> Result<(), Box<dyn Error>> {
+pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) {
     let api_key = read_config();
-    let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip=8.8.8.8");
-    let body = reqwest::get(uri).await?.text().await?;
-    let geodata: Geodata = serde_json::from_str(&body).unwrap();
+    let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
+    let maybe_body = reqwest::get(uri).await;
+    let maybe_text = maybe_body.unwrap().text().await;
+    let text = maybe_text.unwrap(); //.text().await;
+    let geodata: Geodata = serde_json::from_str(&text).unwrap();
+    // match geodata {
+    //     Ok(geodata) => geodata,
+    //     Err(e) => {
+    //         eprintln!("geo lkup failed: err {}, ip {}", e, ip)
+    //     }
+    // }
     dbg!(geodata);
-    Ok(())
 }

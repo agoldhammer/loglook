@@ -103,12 +103,16 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         .collect();
     let le_count = logentries.len();
     println!("Log lines: {le_count}");
-    let _res = geo::geo_lkup().await;
+    // let _res = geo::geo_lkup().await;
 
     // * end of input stage, resulting in raw logentries
-    // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
 
+    // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
     let ip_set = logents_to_ips_set(&logentries);
+    // * need another ip_set for geolookups
+    let ip_set2 = ip_set.clone();
+    // * ---------------
+
     let pb = ProgressBar::new(ip_set.len() as u64);
 
     let mut ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
@@ -121,6 +125,13 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     for ip in ip_set {
         let txa = tx.clone();
         join_set.spawn(async move { lkup::lkup_hostnames(ip, txa).await });
+    }
+
+    let (tx2, mut rx2) = mpsc::channel(CHAN_BUF_SIZE);
+    let mut join_set2: JoinSet<()> = JoinSet::new();
+    for ip in ip_set2 {
+        let txa2 = tx2.clone();
+        join_set2.spawn(async move { geo::geo_lkup(ip, txa2).await });
     }
 
     // * output stuff
