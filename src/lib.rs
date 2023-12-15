@@ -15,6 +15,7 @@ use indicatif::ProgressBar;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
+pub mod geo;
 pub mod lkup;
 pub mod log_entries;
 
@@ -102,6 +103,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         .collect();
     let le_count = logentries.len();
     println!("Log lines: {le_count}");
+    geo::geo_lkup().await;
 
     // * end of input stage, resulting in raw logentries
     // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
@@ -138,6 +140,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         println!("{hl}");
         println! {"{}\n", style("_".repeat(80)).cyan().bright()};
     }
+    println!("Finished processing {le_count} log entries");
 
     // ips::printips(&ip_set);
     // * end of output stuff

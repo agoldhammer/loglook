@@ -10,3 +10,7 @@
 - [async](https:-askubuntu.com/questions/813275/how-to-check-a-bulk-of-ip-for-reverse-dns)
 
 - [threads](https:-users.rust-lang.org/t/please-recommend-a-queue-with-backpressure-for-simple-threads-no-async-yet/68654/3)
+
+## geoip
+
+### curl [geoip](https://api.ipgeolocation.io/ipgeo?apiKey=API_KEY&ip=8.8.8.8)
