@@ -4,7 +4,7 @@ use reqwest;
 use serde::Deserialize;
 use serde_json;
 use shellexpand;
-use std::{error::Error, net::IpAddr};
+use std::{fmt, net::IpAddr};
 use tokio::sync::mpsc;
 
 #[derive(Deserialize)]
@@ -21,6 +21,19 @@ pub struct Geodata {
     city: String,
     isp: String,
     organization: String,
+}
+
+impl fmt::Display for Geodata {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "IP: {}\n", self.ip).unwrap();
+        write!(
+            f,
+            "Loc: {}, {}, {}\n",
+            self.city, self.state_prov, self.country_name
+        )
+        .unwrap();
+        write!(f, "ISP: {}, Org: {}\n", self.isp, self.organization)
+    }
 }
 
 fn read_config() -> String {
@@ -42,5 +55,5 @@ pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) {
     //         eprintln!("geo lkup failed: err {}, ip {}", e, ip)
     //     }
     // }
-    dbg!(geodata);
+    println!("Geodata\n {}", geodata);
 }
