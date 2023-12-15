@@ -129,7 +129,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     // TODO: make rx_geo mutable when implemented
     let (tx_geo, _rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
-    let mut join_set2: JoinSet<()> = JoinSet::new();
+    let mut join_set2: JoinSet<Result<(), Option<String>>> = JoinSet::new();
     for ip in ip_set2 {
         let txa2 = tx_geo.clone();
         join_set2.spawn(async move { geo::geo_lkup(ip, txa2).await });
@@ -163,4 +163,21 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     return Ok(());
+}
+
+#[cfg(tests)]
+mod tests {
+    // use geo;
+
+    // #[test]
+    // async fn geo_lkup_bad_ip() {
+    //     let (tx, rx) = mpsc::channel(32);
+    //     let res = geo::geo_lkup("abc", tx).await;
+    //     assert_eq!(res.unwrap(), Some("url error"));
+    // }
+
+    #[test]
+    fn another() {
+        panic("shd fail");
+    }
 }

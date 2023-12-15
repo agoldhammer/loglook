@@ -4,8 +4,18 @@ use reqwest;
 use serde::Deserialize;
 use serde_json;
 use shellexpand;
+// use std::error::Error;
 use std::{fmt, net::IpAddr};
 use tokio::sync::mpsc;
+
+// use error_chain::error_chain;
+
+// error_chain! {
+//     foreign_links {
+//         Io(std::io::Error);
+//         HttpRequest(reqwest::Error);
+//     }
+// }
 
 #[derive(Deserialize)]
 struct Config {
@@ -43,12 +53,12 @@ fn read_config() -> String {
 }
 
 // TODO send results out over channel
-pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) {
+// ! see also https://users.rust-lang.org/t/propagating-errors-from-tokio-tasks/41723/4
+pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) -> Result<(), Option<String>> {
     let api_key = read_config();
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
-    let maybe_body = reqwest::get(uri).await;
-    let maybe_text = maybe_body.unwrap().text().await;
-    let text = maybe_text.unwrap(); //.text().await;
-    let geodata: Geodata = serde_json::from_str(&text).unwrap();
+    let text = reqwest::get(uri).await.expect("url error").text().await;
+    let geodata: Geodata = serde_json::from_str(&text.expect("api error")).expect("json error");
     println!("Geodata\n {}", geodata);
+    Ok(())
 }

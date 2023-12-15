@@ -11,6 +11,7 @@ clap = { version = "4.4.8", features = ["derive"] }
 config-file = "0.2.3"
 console = "0.15.7"
 dns-lookup = "2.0.4"
+error-chain = "0.12.4"
 hickory-resolver = "0.24.0"
 indicatif = "0.17.7"
 regex = "1.10.2"
