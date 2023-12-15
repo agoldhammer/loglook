@@ -103,7 +103,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         .collect();
     let le_count = logentries.len();
     println!("Log lines: {le_count}");
-    geo::geo_lkup().await;
+    let _res = geo::geo_lkup().await;
 
     // * end of input stage, resulting in raw logentries
     // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
