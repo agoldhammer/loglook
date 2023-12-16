@@ -54,11 +54,33 @@ fn read_config() -> String {
 
 // TODO send results out over channel
 // ! see also https://users.rust-lang.org/t/propagating-errors-from-tokio-tasks/41723/4
-pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) -> Result<(), Option<String>> {
+pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) -> () {
     let api_key = read_config();
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
     let text = reqwest::get(uri).await.expect("url error").text().await;
-    let geodata: Geodata = serde_json::from_str(&text.expect("api error")).expect("json error");
-    println!("Geodata\n {}", geodata);
-    Ok(())
+    let geodata: Geodata = serde_json::from_str(&text.unwrap()).unwrap();
+    //     println!("error {}", e);
+    //     return ();
+    // });
+    println!("Geodata:\n {}", geodata);
+    ()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // use tokio_test::assert_err;
+
+    macro_rules! aw {
+        ($e:expr) => {
+            tokio_test::block_on($e)
+        };
+    }
+
+    #[test]
+    fn geo_lkup_bad_ip() {
+        let (tx, _rx) = mpsc::channel(32);
+        let ip: IpAddr = "192.168.0.116".parse().unwrap();
+        assert_eq!(aw!(geo_lkup(ip, tx)), ());
+    }
 }
