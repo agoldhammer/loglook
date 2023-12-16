@@ -33,6 +33,19 @@ pub struct Geodata {
     organization: String,
 }
 
+impl Geodata {
+    fn new() -> Geodata {
+        Geodata {
+            ip: "".to_string(),
+            country_name: "".to_string(),
+            state_prov: "".to_string(),
+            city: "".to_string(),
+            isp: "".to_string(),
+            organization: "".to_string(),
+        }
+    }
+}
+
 impl fmt::Display for Geodata {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "IP: {}\n", self.ip).unwrap();
@@ -52,20 +65,36 @@ fn read_config() -> String {
     config.api_key
 }
 
+// send error message encapsulated in a Geodata struct
+async fn send_error(tx: mpsc::Sender<Geodata>, ip: &IpAddr, msg: &str) {
+    let mut geod = Geodata::new();
+    geod.ip = format!("{}", ip).to_string();
+    geod.city = format!("Error in geodata lookup: {}", msg).to_string();
+    tx.send(geod).await.expect("shd send geod error");
+}
+
 // TODO send results out over channel
 // ! see also https://users.rust-lang.org/t/propagating-errors-from-tokio-tasks/41723/4
-pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) -> () {
+pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>) -> () {
     let api_key = read_config();
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
     let res = reqwest::get(uri).await.unwrap();
     if res.status() == 200 {
         let text = res.text().await.unwrap();
         let _res = match serde_json::from_str(&text) as Result<Geodata, serde_json::Error> {
-            Ok(geodata) => println!("Geodata:\n {}", geodata),
-            Err(e) => eprintln!("error decoding json {}", e),
+            Ok(geodata) => {
+                tx.send(geodata).await.expect("geodata send shd work");
+                // println!("Geodata:\n {}", geodata);
+            }
+            Err(e) => {
+                let msg = format!("error decoding json {}", e);
+                send_error(tx, &ip, &msg).await;
+                // eprintln!("error decoding json {}", e),
+            }
         };
     } else {
-        eprintln!("error acquiring geodata")
+        let msg = format!("error acquiring geodata for IP {:?}", ip);
+        send_error(tx, &ip, &msg).await;
     }
     ()
 }

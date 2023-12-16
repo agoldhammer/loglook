@@ -118,7 +118,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let mut ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
 
     // * create channels to receive rev lkup results
-    const CHAN_BUF_SIZE: usize = 32;
+    const CHAN_BUF_SIZE: usize = 256;
     let (tx_rdns, mut rx_rdns) = mpsc::channel(CHAN_BUF_SIZE);
 
     let mut join_set = JoinSet::new();
@@ -128,7 +128,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     // TODO: make rx_geo mutable when implemented
-    let (tx_geo, _rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
+    let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
     let mut join_set2: JoinSet<()> = JoinSet::new();
     for ip in ip_set2 {
         let txa2 = tx_geo.clone();
@@ -138,6 +138,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // * output stuff
     // TODO: add channels to receive 2 outputs and pass on to modify hostlogs
     drop(tx_rdns); // have to drop the original channel that has been cloned for each task
+    drop(tx_geo);
     while let Some(rev_lookup_data) = rx_rdns.recv().await {
         let ip = rev_lookup_data.ip_addr;
         pb.inc(1);
@@ -147,12 +148,18 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             .entry(ip)
             .and_modify(|hl| hl.hostname = host.to_string());
     }
+
     pb.finish_and_clear();
     for (ip, hl) in ips_to_hl_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
         println! {"{}\n", style("_".repeat(80)).cyan().bright()};
     }
+
+    while let Some(geo_lookup_data) = rx_geo.recv().await {
+        println!("{}", geo_lookup_data);
+    }
+
     println!("Finished processing {le_count} log entries");
 
     // ips::printips(&ip_set);
