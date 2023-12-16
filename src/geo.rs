@@ -57,12 +57,16 @@ fn read_config() -> String {
 pub async fn geo_lkup(ip: IpAddr, _tx: mpsc::Sender<Geodata>) -> () {
     let api_key = read_config();
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
-    let text = reqwest::get(uri).await.expect("url error").text().await;
-    let geodata: Geodata = serde_json::from_str(&text.unwrap()).unwrap();
-    //     println!("error {}", e);
-    //     return ();
-    // });
-    println!("Geodata:\n {}", geodata);
+    let res = reqwest::get(uri).await.unwrap();
+    if res.status() == 200 {
+        let text = res.text().await.unwrap();
+        let _res = match serde_json::from_str(&text) as Result<Geodata, serde_json::Error> {
+            Ok(geodata) => println!("Geodata:\n {}", geodata),
+            Err(e) => eprintln!("error decoding json {}", e),
+        };
+    } else {
+        eprintln!("error acquiring geodata")
+    }
     ()
 }
 
