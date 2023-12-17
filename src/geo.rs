@@ -64,8 +64,6 @@ async fn send_error(tx: mpsc::Sender<Geodata>, ip: &IpAddr, msg: &str) {
     tx.send(geod).await.expect("shd send geod error");
 }
 
-// TODO send results out over channel
-// ! see also https://users.rust-lang.org/t/propagating-errors-from-tokio-tasks/41723/4
 pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>) -> () {
     let api_key = read_config();
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
@@ -75,12 +73,10 @@ pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>) -> () {
         let _res = match serde_json::from_str(&text) as Result<Geodata, serde_json::Error> {
             Ok(geodata) => {
                 tx.send(geodata).await.expect("geodata send shd work");
-                // println!("Geodata:\n {}", geodata);
             }
             Err(e) => {
                 let msg = format!("error decoding json {}", e);
                 send_error(tx, &ip, &msg).await;
-                // eprintln!("error decoding json {}", e),
             }
         };
     } else {

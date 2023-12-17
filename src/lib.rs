@@ -169,14 +169,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    // for (ip, hl) in ips_to_hl_map {
-    //     println!("{hl}");
-    //     println! {"{}\n", style("_".repeat(80)).cyan().bright()};
-    // }
-
     println!("Finished processing {le_count} log entries");
-
-    // ips::printips(&ip_set);
     // * end of output stuff
 
     while let Some(res) = join_set.join_next().await {
