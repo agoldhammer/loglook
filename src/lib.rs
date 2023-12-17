@@ -15,6 +15,7 @@ use indicatif::ProgressBar;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
+pub mod geo;
 pub mod lkup;
 pub mod log_entries;
 
@@ -102,28 +103,43 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         .collect();
     let le_count = logentries.len();
     println!("Log lines: {le_count}");
+    // let _res = geo::geo_lkup().await;
 
     // * end of input stage, resulting in raw logentries
-    // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
 
+    // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
     let ip_set = logents_to_ips_set(&logentries);
+    // * need another ip_set for geolookups
+    let ip_set2 = ip_set.clone();
+    // * ---------------
+
     let pb = ProgressBar::new(ip_set.len() as u64);
 
     let mut ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
 
     // * create channels to receive rev lkup results
-    const CHAN_BUF_SIZE: usize = 32;
-    let (tx, mut rx) = mpsc::channel(CHAN_BUF_SIZE);
+    const CHAN_BUF_SIZE: usize = 256;
+    let (tx_rdns, mut rx_rdns) = mpsc::channel(CHAN_BUF_SIZE);
 
     let mut join_set = JoinSet::new();
     for ip in ip_set {
-        let txa = tx.clone();
+        let txa = tx_rdns.clone();
         join_set.spawn(async move { lkup::lkup_hostnames(ip, txa).await });
     }
 
+    // TODO: make rx_geo mutable when implemented
+    let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
+    let mut join_set2: JoinSet<()> = JoinSet::new();
+    for ip in ip_set2 {
+        let txa2 = tx_geo.clone();
+        join_set2.spawn(async move { geo::geo_lkup(ip, txa2).await });
+    }
+
     // * output stuff
-    drop(tx); // have to drop the original channel that has been cloned for each task
-    while let Some(rev_lookup_data) = rx.recv().await {
+    // TODO: add channels to receive 2 outputs and pass on to modify hostlogs
+    drop(tx_rdns); // have to drop the original channel that has been cloned for each task
+    drop(tx_geo);
+    while let Some(rev_lookup_data) = rx_rdns.recv().await {
         let ip = rev_lookup_data.ip_addr;
         pb.inc(1);
         // TODO: only using first of poss several ptr records. FIX!
@@ -132,12 +148,19 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             .entry(ip)
             .and_modify(|hl| hl.hostname = host.to_string());
     }
+
     pb.finish_and_clear();
     for (ip, hl) in ips_to_hl_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{hl}");
         println! {"{}\n", style("_".repeat(80)).cyan().bright()};
     }
+
+    while let Some(geo_lookup_data) = rx_geo.recv().await {
+        println!("{}", geo_lookup_data);
+    }
+
+    println!("Finished processing {le_count} log entries");
 
     // ips::printips(&ip_set);
     // * end of output stuff
