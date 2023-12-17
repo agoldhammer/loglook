@@ -8,15 +8,6 @@ use shellexpand;
 use std::{fmt, net::IpAddr};
 use tokio::sync::mpsc;
 
-// use error_chain::error_chain;
-
-// error_chain! {
-//     foreign_links {
-//         Io(std::io::Error);
-//         HttpRequest(reqwest::Error);
-//     }
-// }
-
 #[derive(Deserialize)]
 struct Config {
     api_key: String,
@@ -60,7 +51,7 @@ impl fmt::Display for Geodata {
 }
 
 fn read_config() -> String {
-    let path = shellexpand::tilde("~/Prog/loglook/src/config.toml");
+    let path = shellexpand::tilde("~/.loglook/config.toml");
     let config = Config::from_config_file(path.as_ref()).unwrap();
     config.api_key
 }
