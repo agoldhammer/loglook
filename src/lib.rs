@@ -127,7 +127,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         join_set.spawn(async move { lkup::lkup_hostnames(ip, txa).await });
     }
 
-    // TODO: make rx_geo mutable when implemented
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
     let mut join_set2: JoinSet<()> = JoinSet::new();
     for ip in ip_set2 {

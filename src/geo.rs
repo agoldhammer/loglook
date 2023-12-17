@@ -25,7 +25,7 @@ struct Config {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Geodata {
-    ip: String,
+    ip: IpAddr,
     country_name: String,
     state_prov: String,
     city: String,
@@ -34,9 +34,9 @@ pub struct Geodata {
 }
 
 impl Geodata {
-    fn new() -> Geodata {
+    fn new(ip: &IpAddr) -> Geodata {
         Geodata {
-            ip: "".to_string(),
+            ip: ip.clone(),
             country_name: "".to_string(),
             state_prov: "".to_string(),
             city: "".to_string(),
@@ -67,8 +67,8 @@ fn read_config() -> String {
 
 // send error message encapsulated in a Geodata struct
 async fn send_error(tx: mpsc::Sender<Geodata>, ip: &IpAddr, msg: &str) {
-    let mut geod = Geodata::new();
-    geod.ip = format!("{}", ip).to_string();
+    let mut geod = Geodata::new(ip);
+    // geod.ip = format!("{}", ip).to_string();
     geod.city = format!("Error in geodata lookup: {}", msg).to_string();
     tx.send(geod).await.expect("shd send geod error");
 }
