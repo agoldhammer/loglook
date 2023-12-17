@@ -159,6 +159,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         // println!("{}", geo_lookup_data);
     }
 
+    // TODO colorize hostname, rename hostlogs
     for (ip, geodata) in ips_to_geodata_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{geodata}");
