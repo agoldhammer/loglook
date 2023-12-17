@@ -44,14 +44,14 @@ impl fmt::Display for HostLogs {
 
 impl fmt::Display for LogEntry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "decoding {}:\n", self.line)?;
-        write!(f, "  ip: {}\n", self.ip)?;
+        // write!(f, "  ip: {}\n", self.ip)?;
         write!(f, "  time: {}\n", self.time)?;
         write!(f, "  method: {}\n", self.method)?;
         write!(f, "  code: {}\n", self.code)?;
         write!(f, "  nbytes: {}\n", self.nbytes)?;
         write!(f, "  referrer: {}\n", self.referrer)?;
         write!(f, "  user agent: {}\n", self.ua)?;
+        write!(f, "  logged: {}:\n", self.line)?;
         write!(f, "end\n")
     }
 }

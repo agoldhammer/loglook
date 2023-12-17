@@ -46,7 +46,7 @@ impl fmt::Display for Geodata {
             self.city, self.state_prov, self.country_name
         )
         .unwrap();
-        write!(f, "ISP: {}, Org: {}\n", self.isp, self.organization)
+        write!(f, "ISP: {}, Org: {}", self.isp, self.organization)
     }
 }
 
@@ -69,7 +69,7 @@ pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>, api_key: String) ->
     let res = reqwest::get(uri).await.unwrap();
     if res.status() == 200 {
         let text = res.text().await.unwrap();
-        let _res = match serde_json::from_str(&text) as Result<Geodata, serde_json::Error> {
+        match serde_json::from_str(&text) as Result<Geodata, serde_json::Error> {
             Ok(geodata) => {
                 tx.send(geodata).await.expect("geodata send shd work");
             }

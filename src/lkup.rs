@@ -24,7 +24,6 @@ impl RevLookupData {
 }
 
 impl fmt::Display for RevLookupData {
-    // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ip: {}: ", self.ip_addr).unwrap();
         self.ptr_records
@@ -35,9 +34,7 @@ impl fmt::Display for RevLookupData {
 
 // * Do reverse lookup on ip_str, send result out on channel tx
 pub async fn lkup_hostnames(ip: IpAddr, tx: mpsc::Sender<RevLookupData>) {
-    // async fn get_name(ip_str: &String)  . {
-    const TIMEOUT_MS: u64 = 2500;
-    // let ip_addr: IpAddr = ip_str.parse().unwrap();
+    const TIMEOUT_MS: u64 = 1000;
     let resolver = TokioAsyncResolver::tokio_from_system_conf().unwrap();
 
     let reverse_lookup = resolver.reverse_lookup(ip);

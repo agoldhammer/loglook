@@ -137,7 +137,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     // * output stuff
-    // TODO: add channels to receive 2 outputs and pass on to modify hostlogs
     drop(tx_rdns); // have to drop the original channel that has been cloned for each task
     drop(tx_geo);
     while let Some(rev_lookup_data) = rx_rdns.recv().await {
@@ -156,7 +155,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     while let Some(geo_lookup_data) = rx_geo.recv().await {
         let ip = geo_lookup_data.ip;
         ips_to_geodata_map.insert(ip, geo_lookup_data);
-        // println!("{}", geo_lookup_data);
     }
 
     for (ip, geodata) in ips_to_geodata_map {
@@ -164,11 +162,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         println!("{geodata}");
         let hls = ips_to_hl_map.get(&ip).unwrap();
         let hostlogs = hls.to_owned();
-        println!("Hostname: {}", hostlogs.hostname);
-        for le in hostlogs.log_entries {
-            println!("{le}");
-            println! {"{}\n", style("_".repeat(80)).cyan().bright()};
-        }
+        println!("{hostlogs}");
     }
 
     println!("Finished processing {le_count} log entries");
