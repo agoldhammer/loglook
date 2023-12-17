@@ -149,15 +149,30 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     pb.finish_and_clear();
-    for (ip, hl) in ips_to_hl_map {
-        println!("{}: {}", style("IP").bold().red(), style(ip).green());
-        println!("{hl}");
-        println! {"{}\n", style("_".repeat(80)).cyan().bright()};
+
+    let mut ips_to_geodata_map: HashMap<IpAddr, geo::Geodata> = HashMap::new();
+    while let Some(geo_lookup_data) = rx_geo.recv().await {
+        let ip = geo_lookup_data.ip;
+        ips_to_geodata_map.insert(ip, geo_lookup_data);
+        // println!("{}", geo_lookup_data);
     }
 
-    while let Some(geo_lookup_data) = rx_geo.recv().await {
-        println!("{}", geo_lookup_data);
+    for (ip, geodata) in ips_to_geodata_map {
+        println!("{}: {}", style("IP").bold().red(), style(ip).green());
+        println!("{geodata}");
+        let hls = ips_to_hl_map.get(&ip).unwrap();
+        let hostlogs = hls.to_owned();
+        println!("Hostname: {}", hostlogs.hostname);
+        for le in hostlogs.log_entries {
+            println!("{le}");
+            println! {"{}\n", style("_".repeat(80)).cyan().bright()};
+        }
     }
+
+    // for (ip, hl) in ips_to_hl_map {
+    //     println!("{hl}");
+    //     println! {"{}\n", style("_".repeat(80)).cyan().bright()};
+    // }
 
     println!("Finished processing {le_count} log entries");
 
