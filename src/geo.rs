@@ -50,7 +50,7 @@ impl fmt::Display for Geodata {
     }
 }
 
-fn read_config() -> String {
+pub fn read_config() -> String {
     let path = shellexpand::tilde("~/.loglook/config.toml");
     let config = Config::from_config_file(path.as_ref()).unwrap();
     config.api_key
@@ -64,8 +64,7 @@ async fn send_error(tx: mpsc::Sender<Geodata>, ip: &IpAddr, msg: &str) {
     tx.send(geod).await.expect("shd send geod error");
 }
 
-pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>) -> () {
-    let api_key = read_config();
+pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>, api_key: String) -> () {
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
     let res = reqwest::get(uri).await.unwrap();
     if res.status() == 200 {
@@ -99,8 +98,9 @@ mod tests {
 
     #[test]
     fn geo_lkup_bad_ip() {
+        let api_key = read_config();
         let (tx, _rx) = mpsc::channel(32);
         let ip: IpAddr = "192.168.0.116".parse().unwrap();
-        assert_eq!(aw!(geo_lkup(ip, tx)), ());
+        assert_eq!(aw!(geo_lkup(ip, tx, api_key)), ());
     }
 }

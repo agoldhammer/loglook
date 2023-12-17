@@ -129,9 +129,11 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
     let mut join_set2: JoinSet<()> = JoinSet::new();
+    let api_key = geo::read_config();
     for ip in ip_set2 {
         let txa2 = tx_geo.clone();
-        join_set2.spawn(async move { geo::geo_lkup(ip, txa2).await });
+        let key = api_key.clone();
+        join_set2.spawn(async move { geo::geo_lkup(ip, txa2, key).await });
     }
 
     // * output stuff
