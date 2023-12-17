@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::process;
 use std::vec::Vec;
 
-use indicatif::ProgressBar;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
@@ -113,7 +113,19 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let ip_set2 = ip_set.clone();
     // * ---------------
 
-    let pb = ProgressBar::new(ip_set.len() as u64);
+    let m = MultiProgress::new();
+    let sty = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+    )
+    .unwrap()
+    .progress_chars("##-");
+    let n_pb_items = ip_set.len() as u64;
+    let pb_rdns = m.add(ProgressBar::new(n_pb_items));
+    pb_rdns.set_style(sty.clone());
+    pb_rdns.set_message("rdns");
+    let pb_geo = m.add(ProgressBar::new(n_pb_items));
+    pb_geo.set_style(sty.clone());
+    pb_geo.set_message("geodata");
 
     let mut ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
 
@@ -141,7 +153,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     drop(tx_geo);
     while let Some(rev_lookup_data) = rx_rdns.recv().await {
         let ip = rev_lookup_data.ip_addr;
-        pb.inc(1);
+        pb_rdns.inc(1);
         // TODO: only using first of poss several ptr records. FIX!
         let host = &rev_lookup_data.ptr_records[0];
         ips_to_hl_map
@@ -149,13 +161,16 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             .and_modify(|hl| hl.hostname = host.to_string());
     }
 
-    pb.finish_and_clear();
+    pb_rdns.finish_and_clear();
 
     let mut ips_to_geodata_map: HashMap<IpAddr, geo::Geodata> = HashMap::new();
     while let Some(geo_lookup_data) = rx_geo.recv().await {
+        pb_geo.inc(1);
         let ip = geo_lookup_data.ip;
         ips_to_geodata_map.insert(ip, geo_lookup_data);
     }
+
+    pb_geo.finish_and_clear();
 
     for (ip, geodata) in ips_to_geodata_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
