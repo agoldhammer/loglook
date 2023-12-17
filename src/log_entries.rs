@@ -32,7 +32,7 @@ impl fmt::Display for HostLogs {
             f,
             "{}: {}\n---\n",
             style("Hostname").red().bold(),
-            style(&self.hostname).magenta()
+            style(&self.hostname).green()
         )
         .expect("shd wrt ok");
         for log_entry in self.log_entries.iter() {
