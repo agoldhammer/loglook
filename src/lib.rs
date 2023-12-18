@@ -22,7 +22,7 @@ use log_entries::{HostLogs, LogEntry};
 
 fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static>> {
     let file = File::open(path)?;
-    return Ok(io::BufReader::new(file).lines());
+    Ok(io::BufReader::new(file).lines())
 }
 
 fn logents_to_ips_set(logentries: &Vec<LogEntry>) -> HashSet<IpAddr> {
