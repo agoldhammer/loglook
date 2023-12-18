@@ -62,7 +62,14 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let maybe_logentries: Vec<anyhow::Result<LogEntry>> = lines
         .map(|line| log_entries::LogEntry::try_from(&line.unwrap()))
         .collect();
-    let logentries: Vec<LogEntry> = maybe_logentries.into_iter().map(|le| le.unwrap()).collect();
+    // TODO deal with errors here
+    let mut logentries: Vec<LogEntry> = Vec::new();
+    for maybe_logentry in maybe_logentries.into_iter() {
+        match maybe_logentry {
+            Ok(logentry) => logentries.push(logentry),
+            Err(e) => eprintln!("Log read error: {}", e),
+        }
+    }
     let le_count = logentries.len();
     println!("Log lines: {le_count}");
 
