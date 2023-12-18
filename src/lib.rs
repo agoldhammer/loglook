@@ -22,7 +22,7 @@ use log_entries::{HostLogs, LogEntry};
 
 fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static>> {
     let file = File::open(path)?;
-    return Ok(io::BufReader::new(file).lines());
+    Ok(io::BufReader::new(file).lines())
 }
 
 fn logents_to_ips_set(logentries: &Vec<LogEntry>) -> HashSet<IpAddr> {
@@ -60,9 +60,16 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
     let maybe_logentries: Vec<anyhow::Result<LogEntry>> = lines
-        .map(|line| log_entries::LogEntry::try_from(&line.unwrap()))
+        .map(|line| log_entries::LogEntry::try_from(&line.expect("log line should be readable")))
         .collect();
-    let logentries: Vec<LogEntry> = maybe_logentries.into_iter().map(|le| le.unwrap()).collect();
+    // * deal with errors (poss bad lines in log) here by displaying on stderr
+    let mut logentries: Vec<LogEntry> = Vec::new();
+    for maybe_logentry in maybe_logentries.into_iter() {
+        match maybe_logentry {
+            Ok(logentry) => logentries.push(logentry),
+            Err(e) => eprintln!("Log read error: {}", e),
+        }
+    }
     let le_count = logentries.len();
     println!("Log lines: {le_count}");
 
@@ -148,5 +155,5 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         res.expect("all async chans should finish");
     }
 
-    return Ok(());
+    Ok(())
 }
