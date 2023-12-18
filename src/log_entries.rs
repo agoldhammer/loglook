@@ -2,6 +2,7 @@
 use chrono::DateTime;
 use console::style;
 // use serde::de::Error;
+use anyhow::{Context, Result};
 use core::convert::TryFrom;
 use regex::{Captures, Regex};
 use std::fmt;
@@ -66,20 +67,16 @@ fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
 }
 
 impl TryFrom<&String> for LogEntry {
-    type Error = String;
+    type Error = anyhow::Error;
 
-    fn try_from(line: &String) -> Result<Self, Self::Error> {
+    fn try_from(line: &String) -> Result<Self> {
         let re = Regex::new(
                     r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
                 )
                 .unwrap();
-        let caps = match re.captures(line) {
-            Some(x) => x,
-            None => {
-                let s = format!("Failed to parse line: {:?}", line);
-                return Err(s.clone());
-            }
-        };
+        let caps = re
+            .captures(line)
+            .with_context(|| format!("Failed to parse line: {:?}", line))?;
         let ip_str = get_re_match_part(&caps, "ip");
         let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
         let code_str = get_re_match_part(&caps, "code");
