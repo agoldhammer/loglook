@@ -1,4 +1,5 @@
 // use chrono::DateTime;
+use anyhow;
 use console::style;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -58,7 +59,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // * input stage
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
-    let maybe_logentries: Vec<Result<LogEntry, String>> = lines
+    let maybe_logentries: Vec<anyhow::Result<LogEntry>> = lines
         .map(|line| log_entries::LogEntry::try_from(&line.unwrap()))
         .collect();
     let logentries: Vec<LogEntry> = maybe_logentries.into_iter().map(|le| le.unwrap()).collect();
