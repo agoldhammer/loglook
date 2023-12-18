@@ -60,9 +60,9 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
     let maybe_logentries: Vec<anyhow::Result<LogEntry>> = lines
-        .map(|line| log_entries::LogEntry::try_from(&line.unwrap()))
+        .map(|line| log_entries::LogEntry::try_from(&line.expect("log line should be readable")))
         .collect();
-    // TODO deal with errors here
+    // * deal with errors (poss bad lines in log) here by displaying on stderr
     let mut logentries: Vec<LogEntry> = Vec::new();
     for maybe_logentry in maybe_logentries.into_iter() {
         match maybe_logentry {
