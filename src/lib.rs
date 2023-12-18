@@ -148,5 +148,5 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         res.expect("all async chans should finish");
     }
 
-    return Ok(());
+    Ok(())
 }
