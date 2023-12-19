@@ -41,7 +41,7 @@ impl fmt::Display for HostLogs {
         )
         .expect("shd wrt ok");
         for log_entry in self.log_entries.iter() {
-            write!(f, "{}\n", log_entry).expect("shd wrt ok");
+            writeln!(f, "{}", log_entry).expect("shd wrt ok");
         }
         write!(f, "{}", style("-".repeat(40)).cyan())
     }
@@ -50,20 +50,20 @@ impl fmt::Display for HostLogs {
 impl fmt::Display for LogEntry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // write!(f, "  ip: {}\n", self.ip)?;
-        write!(f, "  time: {}\n", self.time)?;
-        write!(f, "  method: {}\n", self.method)?;
-        write!(f, "  code: {}\n", self.code)?;
-        write!(f, "  nbytes: {}\n", self.nbytes)?;
-        write!(f, "  referrer: {}\n", self.referrer)?;
-        write!(f, "  user agent: {}\n", self.ua)?;
-        write!(f, "  logged: {}:\n", self.line)?;
-        write!(f, "end\n")
+        writeln!(f, "  time: {}", self.time)?;
+        writeln!(f, "  method: {}", self.method)?;
+        writeln!(f, "  code: {}", self.code)?;
+        writeln!(f, "  nbytes: {}", self.nbytes)?;
+        writeln!(f, "  referrer: {}", self.referrer)?;
+        writeln!(f, "  user agent: {}", self.ua)?;
+        writeln!(f, "  logged: {}:", self.line)?;
+        writeln!(f, "end")
     }
 }
 
 fn get_re_match_part(caps: &Captures<'_>, part_name: &str) -> String {
     let part = caps.name(part_name).unwrap().as_str();
-    return String::from(part);
+    String::from(part)
 }
 
 impl TryFrom<&String> for LogEntry {
@@ -85,7 +85,7 @@ impl TryFrom<&String> for LogEntry {
         let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z")
             .expect("should be valid time fmt");
         let le = LogEntry {
-            ip: ip,
+            ip,
             time: time.to_string(),
             method: get_re_match_part(&caps, "method"),
             code: code_str.parse().unwrap(),

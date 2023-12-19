@@ -27,7 +27,7 @@ pub struct Geodata {
 impl Geodata {
     fn new(ip: &IpAddr) -> Geodata {
         Geodata {
-            ip: ip.clone(),
+            ip: *ip,
             country_name: "".to_string(),
             state_prov: "".to_string(),
             city: "".to_string(),
@@ -40,9 +40,9 @@ impl Geodata {
 impl fmt::Display for Geodata {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // write!(f, "IP: {}\n", self.ip).unwrap();
-        write!(
+        writeln!(
             f,
-            "Loc: {}, {}, {}\n",
+            "Loc: {}, {}, {}",
             self.city, self.state_prov, self.country_name
         )
         .unwrap();
@@ -64,7 +64,7 @@ async fn send_error(tx: mpsc::Sender<Geodata>, ip: &IpAddr, msg: &str) {
     tx.send(geod).await.expect("shd send geod error");
 }
 
-pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>, api_key: String) -> () {
+pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>, api_key: String) {
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
     let res = reqwest::get(uri).await.unwrap();
     if res.status() == 200 {
@@ -82,7 +82,6 @@ pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>, api_key: String) ->
         let msg = format!("error acquiring geodata for IP {:?}", ip);
         send_error(tx, &ip, &msg).await;
     }
-    ()
 }
 
 #[cfg(test)]
