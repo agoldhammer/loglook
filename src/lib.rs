@@ -122,11 +122,11 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     while let Some(rev_lookup_data) = rx_rdns.recv().await {
         let ip = rev_lookup_data.ip_addr;
         pb_rdns.inc(1);
-        // TODO: only using first of poss several ptr records. FIX!
-        let host = &rev_lookup_data.ptr_records[0];
+        // * if multiple ptr records, comma splice them
+        let hosts = rev_lookup_data.ptr_records.join(", ");
         ips_to_hl_map
             .entry(ip)
-            .and_modify(|hl| hl.hostname = host.to_string());
+            .and_modify(|hl| hl.hostname = hosts.clone());
     }
 
     pb_rdns.finish_and_clear();
