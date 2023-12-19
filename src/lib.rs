@@ -24,7 +24,7 @@ fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Erro
     Ok(io::BufReader::new(file).lines())
 }
 
-fn logents_to_ips_set(logentries: &Vec<LogEntry>) -> HashSet<IpAddr> {
+fn logents_to_ips_set(logentries: &[LogEntry]) -> HashSet<IpAddr> {
     let mut ips = HashSet::new();
     for logentry in logentries {
         ips.insert(logentry.ip);
