@@ -1,5 +1,4 @@
 // use chrono::DateTime;
-use anyhow;
 use console::style;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -33,7 +32,8 @@ fn logents_to_ips_set(logentries: &Vec<LogEntry>) -> HashSet<IpAddr> {
     ips
 }
 
-fn logents_to_ips_to_hl_map(logentries: &Vec<LogEntry>) -> HashMap<IpAddr, HostLogs> {
+#[allow(clippy::map_entry)]
+fn logents_to_ips_to_hl_map(logentries: &[LogEntry]) -> HashMap<IpAddr, HostLogs> {
     let mut map_ips_to_hl: HashMap<IpAddr, HostLogs> = HashMap::new();
     for logentry in logentries.iter() {
         if map_ips_to_hl.contains_key(&logentry.ip) {
@@ -43,8 +43,7 @@ fn logents_to_ips_to_hl_map(logentries: &Vec<LogEntry>) -> HashMap<IpAddr, HostL
                 .and_modify(|hl| hl.log_entries.push(logentry.clone()));
         } else {
             // * this is first in map with this ip
-            let mut v = Vec::new();
-            v.push(logentry.clone());
+            let v = vec![logentry.clone()];
             let hl = HostLogs {
                 hostname: "".to_string(), // will be filled later
                 log_entries: v,
