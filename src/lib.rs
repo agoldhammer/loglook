@@ -12,7 +12,6 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 use config_file::FromConfigFile;
 use serde::Deserialize;
-use shellexpand;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
