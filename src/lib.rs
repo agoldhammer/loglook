@@ -23,8 +23,10 @@ pub mod log_entries;
 use log_entries::{HostLogs, LogEntry};
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct Config {
     api_key: String,
+    db_uri: String,
 }
 
 fn read_config() -> Config {
