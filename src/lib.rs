@@ -10,6 +10,9 @@ use std::vec::Vec;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
+use config_file::FromConfigFile;
+use serde::Deserialize;
+use shellexpand;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
@@ -18,6 +21,17 @@ pub mod lkup;
 pub mod log_entries;
 
 use log_entries::{HostLogs, LogEntry};
+
+#[derive(Deserialize)]
+struct Config {
+    api_key: String,
+}
+
+fn read_config() -> Config {
+    let path = shellexpand::tilde("~/.loglook/config.toml");
+    let config = Config::from_config_file(path.as_ref()).unwrap();
+    config
+}
 
 fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static>> {
     let file = File::open(path)?;
@@ -108,10 +122,10 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
     let mut join_set2: JoinSet<()> = JoinSet::new();
-    let api_key = geo::read_config();
+    let config = read_config();
     for ip in ip_set2 {
         let txa2 = tx_geo.clone();
-        let key = api_key.clone();
+        let key = config.api_key.clone();
         join_set2.spawn(async move { geo::geo_lkup(ip, txa2, key).await });
     }
 

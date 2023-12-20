@@ -1,17 +1,9 @@
 // * handle geo lookups
-use config_file::FromConfigFile;
 use reqwest;
 use serde::Deserialize;
 use serde_json;
-use shellexpand;
-// use std::error::Error;
 use std::{fmt, net::IpAddr};
 use tokio::sync::mpsc;
-
-#[derive(Deserialize)]
-struct Config {
-    api_key: String,
-}
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -50,13 +42,7 @@ impl fmt::Display for Geodata {
     }
 }
 
-pub fn read_config() -> String {
-    let path = shellexpand::tilde("~/.loglook/config.toml");
-    let config = Config::from_config_file(path.as_ref()).unwrap();
-    config.api_key
-}
-
-// send error message encapsulated in a Geodata struct
+// * send error message encapsulated in a Geodata struct
 async fn send_error(tx: mpsc::Sender<Geodata>, ip: &IpAddr, msg: &str) {
     let mut geod = Geodata::new(ip);
     // geod.ip = format!("{}", ip).to_string();
@@ -87,6 +73,7 @@ pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>, api_key: String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::read_config;
     // use tokio_test::assert_err;
 
     macro_rules! aw {
@@ -97,7 +84,7 @@ mod tests {
 
     #[test]
     fn geo_lkup_bad_ip() {
-        let api_key = read_config();
+        let api_key = read_config().api_key;
         let (tx, _rx) = mpsc::channel(32);
         let ip: IpAddr = "192.168.0.116".parse().unwrap();
         assert_eq!(aw!(geo_lkup(ip, tx, api_key)), ());
