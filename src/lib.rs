@@ -63,6 +63,23 @@ fn make_logentries(lines: Lines<BufReader<File>>) -> Vec<LogEntry> {
     logentries
 }
 
+fn progress_bar_setup(n_pb_items: u64) -> (ProgressBar, ProgressBar) {
+    let m = MultiProgress::new();
+    let sty = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+    )
+    .unwrap()
+    .progress_chars("##-");
+    // let n_pb_items = ip_set.len() as u64;
+    let pb_rdns = m.add(ProgressBar::new(n_pb_items));
+    pb_rdns.set_style(sty.clone());
+    pb_rdns.set_message("rdns");
+    let pb_geo = m.add(ProgressBar::new(n_pb_items));
+    pb_geo.set_style(sty.clone());
+    pb_geo.set_message("geodata");
+    (pb_rdns, pb_geo)
+}
+
 pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     /* Strategy: Parse loglines into LogEntries
     Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
@@ -84,20 +101,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // * need another ip_set for geolookups
     let ip_set2 = ip_set.clone();
     // * ---------------
-
-    let m = MultiProgress::new();
-    let sty = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
-    )
-    .unwrap()
-    .progress_chars("##-");
-    let n_pb_items = ip_set.len() as u64;
-    let pb_rdns = m.add(ProgressBar::new(n_pb_items));
-    pb_rdns.set_style(sty.clone());
-    pb_rdns.set_message("rdns");
-    let pb_geo = m.add(ProgressBar::new(n_pb_items));
-    pb_geo.set_style(sty.clone());
-    pb_geo.set_message("geodata");
+    let (pb_rdns, pb_geo) = progress_bar_setup(ip_set.len() as u64);
 
     let mut ips_to_rdns_map: HashMap<IpAddr, RevLookupData> = HashMap::new();
 
