@@ -1,4 +1,3 @@
-// use chrono::DateTime;
 use console::style;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -10,6 +9,8 @@ use std::vec::Vec;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
+use config_file::FromConfigFile;
+use serde::Deserialize;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
@@ -17,7 +18,22 @@ pub mod geo;
 pub mod lkup;
 pub mod log_entries;
 
-use log_entries::{HostLogs, LogEntry};
+use log_entries::LogEntry;
+
+use crate::lkup::RevLookupData;
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct Config {
+    api_key: String,
+    db_uri: String,
+}
+
+fn read_config() -> Config {
+    let path = shellexpand::tilde("~/.loglook/config.toml");
+    let config = Config::from_config_file(path.as_ref()).unwrap();
+    config
+}
 
 fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static>> {
     let file = File::open(path)?;
@@ -32,29 +48,13 @@ fn logents_to_ips_set(logentries: &[LogEntry]) -> HashSet<IpAddr> {
     ips
 }
 
-#[allow(clippy::map_entry)]
-fn logents_to_ips_to_hl_map(logentries: &[LogEntry]) -> HashMap<IpAddr, HostLogs> {
-    let mut map_ips_to_hl: HashMap<IpAddr, HostLogs> = HashMap::new();
-    for logentry in logentries.iter() {
-        if map_ips_to_hl.contains_key(&logentry.ip) {
-            // * ip is already in map, so append to existing hl HostLogs
-            map_ips_to_hl
-                .entry(logentry.ip)
-                .and_modify(|hl| hl.log_entries.push(logentry.clone()));
-        } else {
-            // * this is first in map with this ip
-            let v = vec![logentry.clone()];
-            let hl = HostLogs {
-                hostname: "".to_string(), // will be filled later
-                log_entries: v,
-            };
-            map_ips_to_hl.insert(logentry.ip, hl);
-        }
-    }
-    map_ips_to_hl
-}
-
 pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    /* Strategy: Parse loglines into LogEntries
+    Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
+    Do geo lookup to generate Geodata, collect in map with ip as key
+    Output to console
+    Eventually, send to mongo db
+     */
     // * input stage
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
@@ -74,7 +74,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     // * end of input stage, resulting in raw logentries
 
-    // * from raw logentries extract set of unique ips and map from ips to HostLogs structs
+    // * from raw logentries extract set of unique ips and map from ips
     let ip_set = logents_to_ips_set(&logentries);
     // * need another ip_set for geolookups
     let ip_set2 = ip_set.clone();
@@ -94,7 +94,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     pb_geo.set_style(sty.clone());
     pb_geo.set_message("geodata");
 
-    let mut ips_to_hl_map = logents_to_ips_to_hl_map(&logentries);
+    let mut ips_to_rdns_map: HashMap<IpAddr, RevLookupData> = HashMap::new();
 
     // * create channels to receive rev lkup results
     const CHAN_BUF_SIZE: usize = 256;
@@ -108,10 +108,10 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
     let mut join_set2: JoinSet<()> = JoinSet::new();
-    let api_key = geo::read_config();
+    let config = read_config();
     for ip in ip_set2 {
         let txa2 = tx_geo.clone();
-        let key = api_key.clone();
+        let key = config.api_key.clone();
         join_set2.spawn(async move { geo::geo_lkup(ip, txa2, key).await });
     }
 
@@ -121,11 +121,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     while let Some(rev_lookup_data) = rx_rdns.recv().await {
         let ip = rev_lookup_data.ip_addr;
         pb_rdns.inc(1);
-        // * if multiple ptr records, comma splice them
-        let hosts = rev_lookup_data.ptr_records.join(", ");
-        ips_to_hl_map
-            .entry(ip)
-            .and_modify(|hl| hl.hostname = hosts.clone());
+        ips_to_rdns_map.insert(ip, rev_lookup_data);
     }
 
     pb_rdns.finish_and_clear();
@@ -142,9 +138,12 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     for (ip, geodata) in ips_to_geodata_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{geodata}");
-        let hls = ips_to_hl_map.get(&ip).unwrap();
-        let hostlogs = hls.to_owned();
-        println!("{hostlogs}");
+        let rdns = ips_to_rdns_map.get(&ip).unwrap();
+        println!("{rdns}\n");
+        let les = logentries.iter().filter(|le| le.ip == ip);
+        for le in les {
+            println!("{le}");
+        }
     }
 
     println!("Finished processing {le_count} log entries");
@@ -155,4 +154,16 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+    use crate::read_config;
+
+    #[test]
+    fn config_read_rest() {
+        let db_uri = read_config().db_uri;
+        assert!(db_uri.contains("27017"));
+    }
 }
