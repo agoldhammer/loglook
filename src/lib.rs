@@ -37,7 +37,14 @@ struct HostData {
 
 impl fmt::Display for HostData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "ip: {}: ", self.geodata.ip).unwrap();
+        writeln!(
+            f,
+            "{}: {}",
+            style("IP").bold().red(),
+            style(self.geodata.ip).green()
+        )
+        .unwrap();
+
         write!(f, "{}", self.geodata).unwrap();
         self.ptr_records.iter().try_for_each(|record| {
             writeln!(f, "{}: {}", style("host").red(), style(record).green())
