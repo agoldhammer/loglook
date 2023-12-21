@@ -2,7 +2,7 @@ use console::style;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Lines};
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::vec::Vec;
@@ -48,16 +48,7 @@ fn logents_to_ips_set(logentries: &[LogEntry]) -> HashSet<IpAddr> {
     ips
 }
 
-pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
-    /* Strategy: Parse loglines into LogEntries
-    Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
-    Do geo lookup to generate Geodata, collect in map with ip as key
-    Output to console
-    Eventually, send to mongo db
-     */
-    // * input stage
-    let lines = read_lines(path)?;
-    // * process each logline and collect parsed lines into Vec<LogEntry>
+fn make_logentries(lines: Lines<BufReader<File>>) -> Vec<LogEntry> {
     let maybe_logentries: Vec<anyhow::Result<LogEntry>> = lines
         .map(|line| log_entries::LogEntry::try_from(&line.expect("log line should be readable")))
         .collect();
@@ -69,6 +60,20 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             Err(e) => eprintln!("Log read error: {}", e),
         }
     }
+    logentries
+}
+
+pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    /* Strategy: Parse loglines into LogEntries
+    Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
+    Do geo lookup to generate Geodata, collect in map with ip as key
+    Output to console
+    Eventually, send to mongo db
+     */
+    // * input stage
+    let lines = read_lines(path)?;
+    // * process each logline and collect parsed lines into Vec<LogEntry>
+    let logentries = make_logentries(lines);
     let le_count = logentries.len();
     println!("Log lines: {le_count}");
 
