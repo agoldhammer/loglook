@@ -1,8 +1,9 @@
 use console::style;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::fmt;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Lines};
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::vec::Vec;
@@ -29,6 +30,21 @@ struct Config {
     db_uri: String,
 }
 
+struct HostData {
+    geodata: geo::Geodata,
+    ptr_records: Vec<String>,
+}
+
+impl fmt::Display for HostData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "ip: {}: ", self.geodata.ip).unwrap();
+        write!(f, "{}", self.geodata).unwrap();
+        self.ptr_records.iter().try_for_each(|record| {
+            writeln!(f, "{}: {}", style("host").red(), style(record).green())
+        })
+    }
+}
+
 fn read_config() -> Config {
     let path = shellexpand::tilde("~/.loglook/config.toml");
     let config = Config::from_config_file(path.as_ref()).unwrap();
@@ -48,16 +64,7 @@ fn logents_to_ips_set(logentries: &[LogEntry]) -> HashSet<IpAddr> {
     ips
 }
 
-pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
-    /* Strategy: Parse loglines into LogEntries
-    Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
-    Do geo lookup to generate Geodata, collect in map with ip as key
-    Output to console
-    Eventually, send to mongo db
-     */
-    // * input stage
-    let lines = read_lines(path)?;
-    // * process each logline and collect parsed lines into Vec<LogEntry>
+fn make_logentries(lines: Lines<BufReader<File>>) -> Vec<LogEntry> {
     let maybe_logentries: Vec<anyhow::Result<LogEntry>> = lines
         .map(|line| log_entries::LogEntry::try_from(&line.expect("log line should be readable")))
         .collect();
@@ -69,6 +76,37 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             Err(e) => eprintln!("Log read error: {}", e),
         }
     }
+    logentries
+}
+
+fn progress_bar_setup(n_pb_items: u64) -> (ProgressBar, ProgressBar) {
+    let m = MultiProgress::new();
+    let sty = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+    )
+    .unwrap()
+    .progress_chars("##-");
+    // let n_pb_items = ip_set.len() as u64;
+    let pb_rdns = m.add(ProgressBar::new(n_pb_items));
+    pb_rdns.set_style(sty.clone());
+    pb_rdns.set_message("rdns");
+    let pb_geo = m.add(ProgressBar::new(n_pb_items));
+    pb_geo.set_style(sty.clone());
+    pb_geo.set_message("geodata");
+    (pb_rdns, pb_geo)
+}
+
+pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    /* Strategy: Parse loglines into LogEntries
+    Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
+    Do geo lookup to generate Geodata, collect in map with ip as key
+    Output to console
+    Eventually, send to mongo db
+     */
+    // * input stage
+    let lines = read_lines(path)?;
+    // * process each logline and collect parsed lines into Vec<LogEntry>
+    let logentries = make_logentries(lines);
     let le_count = logentries.len();
     println!("Log lines: {le_count}");
 
@@ -79,20 +117,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // * need another ip_set for geolookups
     let ip_set2 = ip_set.clone();
     // * ---------------
-
-    let m = MultiProgress::new();
-    let sty = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
-    )
-    .unwrap()
-    .progress_chars("##-");
-    let n_pb_items = ip_set.len() as u64;
-    let pb_rdns = m.add(ProgressBar::new(n_pb_items));
-    pb_rdns.set_style(sty.clone());
-    pb_rdns.set_message("rdns");
-    let pb_geo = m.add(ProgressBar::new(n_pb_items));
-    pb_geo.set_style(sty.clone());
-    pb_geo.set_message("geodata");
+    let (pb_rdns, pb_geo) = progress_bar_setup(ip_set.len() as u64);
 
     let mut ips_to_rdns_map: HashMap<IpAddr, RevLookupData> = HashMap::new();
 
@@ -124,7 +149,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         ips_to_rdns_map.insert(ip, rev_lookup_data);
     }
 
-    pb_rdns.finish_and_clear();
+    pb_rdns.finish();
 
     let mut ips_to_geodata_map: HashMap<IpAddr, geo::Geodata> = HashMap::new();
     while let Some(geo_lookup_data) = rx_geo.recv().await {
@@ -133,17 +158,28 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         ips_to_geodata_map.insert(ip, geo_lookup_data);
     }
 
-    pb_geo.finish_and_clear();
+    pb_geo.finish();
 
+    let mut ip_to_hostdata_map = HashMap::new();
     for (ip, geodata) in ips_to_geodata_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{geodata}");
         let rdns = ips_to_rdns_map.get(&ip).unwrap();
+        let hostdata = HostData {
+            geodata,
+            ptr_records: rdns.ptr_records.clone(),
+        };
+        ip_to_hostdata_map.insert(ip, hostdata);
         println!("{rdns}\n");
         let les = logentries.iter().filter(|le| le.ip == ip);
         for le in les {
             println!("{le}");
         }
+    }
+
+    println!("Hostdata");
+    for hd in ip_to_hostdata_map.values() {
+        println!("{hd}");
     }
 
     println!("Finished processing {le_count} log entries");
