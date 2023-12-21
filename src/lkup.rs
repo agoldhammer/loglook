@@ -1,3 +1,4 @@
+use console::style;
 use std::fmt;
 use std::net::IpAddr;
 use std::time::Duration;
@@ -25,10 +26,10 @@ impl RevLookupData {
 
 impl fmt::Display for RevLookupData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ip: {}: ", self.ip_addr).unwrap();
+        // write!(f, "ip: {}: ", self.ip_addr).unwrap();
         self.ptr_records
             .iter()
-            .try_for_each(|record| write!(f, "host: {}", record))
+            .try_for_each(|record| write!(f, "{}: {}", style("host").red(), style(record).green()))
     }
 }
 

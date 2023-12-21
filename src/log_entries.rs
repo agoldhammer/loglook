@@ -1,8 +1,6 @@
 // LogEntry holds info derived from one line of log file
-use chrono::DateTime;
-use console::style;
-// use serde::de::Error;
 use anyhow::{Context, Result};
+use chrono::DateTime;
 use core::convert::TryFrom;
 use regex::{Captures, Regex};
 use std::fmt;
@@ -19,32 +17,6 @@ pub struct LogEntry {
     pub referrer: String,
     pub ua: String,
     pub line: String,
-}
-
-// * type to hold both a hostname and a vector of
-// * LogEntry types representing activity on that host
-// * will be collected in a hash map
-// * called map_ips_to_logents with ip as index
-#[derive(Debug, Clone)]
-pub struct HostLogs {
-    pub hostname: String,
-    pub log_entries: Vec<LogEntry>,
-}
-
-impl fmt::Display for HostLogs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}: {}\n---\n",
-            style("Hostname").red().bold(),
-            style(&self.hostname).green()
-        )
-        .expect("shd wrt ok");
-        for log_entry in self.log_entries.iter() {
-            writeln!(f, "{}", log_entry).expect("shd wrt ok");
-        }
-        write!(f, "{}", style("-".repeat(40)).cyan())
-    }
 }
 
 impl fmt::Display for LogEntry {
@@ -112,6 +84,7 @@ mod tests {
 
     #[test]
     fn detect_bad_line_test() {
+        // removing open bracket on date
         let line = "180.149.125.164 - - 25/Nov/2023:00:16:58 -0500] \"GET /stalker_portal/server/tools/auth_simple.php HTTP/1.1\" 404 209 \"-\" \"Mozilla/5.0 (Windows NT 5.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36\"".to_string();
         assert!(LogEntry::try_from(&line).is_err());
     }
