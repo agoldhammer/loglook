@@ -38,7 +38,8 @@ impl fmt::Display for Geodata {
             self.city, self.state_prov, self.country_name
         )
         .unwrap();
-        write!(f, "ISP: {}, Org: {}", self.isp, self.organization)
+        writeln!(f, "ISP: {}", self.isp).unwrap();
+        writeln!(f, "Org: {}", self.organization)
     }
 }
 

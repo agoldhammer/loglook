@@ -1,6 +1,7 @@
 use console::style;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
 use std::net::IpAddr;
@@ -27,6 +28,21 @@ use crate::lkup::RevLookupData;
 struct Config {
     api_key: String,
     db_uri: String,
+}
+
+struct HostData {
+    geodata: geo::Geodata,
+    ptr_records: Vec<String>,
+}
+
+impl fmt::Display for HostData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "ip: {}: ", self.geodata.ip).unwrap();
+        write!(f, "{}", self.geodata).unwrap();
+        self.ptr_records.iter().try_for_each(|record| {
+            writeln!(f, "{}: {}", style("host").red(), style(record).green())
+        })
+    }
 }
 
 fn read_config() -> Config {
@@ -133,7 +149,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         ips_to_rdns_map.insert(ip, rev_lookup_data);
     }
 
-    pb_rdns.finish_and_clear();
+    pb_rdns.finish();
 
     let mut ips_to_geodata_map: HashMap<IpAddr, geo::Geodata> = HashMap::new();
     while let Some(geo_lookup_data) = rx_geo.recv().await {
@@ -142,17 +158,28 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         ips_to_geodata_map.insert(ip, geo_lookup_data);
     }
 
-    pb_geo.finish_and_clear();
+    pb_geo.finish();
 
+    let mut ip_to_hostdata_map = HashMap::new();
     for (ip, geodata) in ips_to_geodata_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{geodata}");
         let rdns = ips_to_rdns_map.get(&ip).unwrap();
+        let hostdata = HostData {
+            geodata,
+            ptr_records: rdns.ptr_records.clone(),
+        };
+        ip_to_hostdata_map.insert(ip, hostdata);
         println!("{rdns}\n");
         let les = logentries.iter().filter(|le| le.ip == ip);
         for le in les {
             println!("{le}");
         }
+    }
+
+    println!("Hostdata");
+    for hd in ip_to_hostdata_map.values() {
+        println!("{hd}");
     }
 
     println!("Finished processing {le_count} log entries");

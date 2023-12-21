@@ -6,6 +6,9 @@ use regex::{Captures, Regex};
 use std::fmt;
 use std::net::IpAddr;
 
+// use crate::geo;
+// use crate::lkup::RevLookupData;
+
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct LogEntry {
