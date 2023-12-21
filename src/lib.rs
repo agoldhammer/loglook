@@ -171,3 +171,15 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+    use crate::read_config;
+
+    #[test]
+    fn config_read_rest() {
+        let db_uri = read_config().db_uri;
+        assert!(db_uri.contains("27017"));
+    }
+}
