@@ -37,7 +37,14 @@ struct HostData {
 
 impl fmt::Display for HostData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "ip: {}: ", self.geodata.ip).unwrap();
+        writeln!(
+            f,
+            "{}: {}",
+            style("IP").bold().red(),
+            style(self.geodata.ip).green()
+        )
+        .unwrap();
+
         write!(f, "{}", self.geodata).unwrap();
         self.ptr_records.iter().try_for_each(|record| {
             writeln!(f, "{}: {}", style("host").red(), style(record).green())
@@ -132,24 +139,16 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
-    let mut join_set2: JoinSet<()> = JoinSet::new();
     let config = read_config();
     for ip in ip_set2 {
         let txa2 = tx_geo.clone();
         let key = config.api_key.clone();
-        join_set2.spawn(async move { geo::geo_lkup(ip, txa2, key).await });
+        join_set.spawn(async move { geo::geo_lkup(ip, txa2, key).await });
     }
 
     // * output stuff
     drop(tx_rdns); // have to drop the original channel that has been cloned for each task
     drop(tx_geo);
-    while let Some(rev_lookup_data) = rx_rdns.recv().await {
-        let ip = rev_lookup_data.ip_addr;
-        pb_rdns.inc(1);
-        ips_to_rdns_map.insert(ip, rev_lookup_data);
-    }
-
-    pb_rdns.finish();
 
     let mut ips_to_geodata_map: HashMap<IpAddr, geo::Geodata> = HashMap::new();
     while let Some(geo_lookup_data) = rx_geo.recv().await {
@@ -158,9 +157,17 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         ips_to_geodata_map.insert(ip, geo_lookup_data);
     }
 
+    while let Some(rev_lookup_data) = rx_rdns.recv().await {
+        let ip = rev_lookup_data.ip_addr;
+        pb_rdns.inc(1);
+        ips_to_rdns_map.insert(ip, rev_lookup_data);
+    }
+
+    pb_rdns.finish();
     pb_geo.finish();
 
     let mut ip_to_hostdata_map = HashMap::new();
+    println!("\nOutput");
     for (ip, geodata) in ips_to_geodata_map {
         println!("{}: {}", style("IP").bold().red(), style(ip).green());
         println!("{geodata}");
