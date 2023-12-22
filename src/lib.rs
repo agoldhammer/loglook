@@ -12,7 +12,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 use config_file::FromConfigFile;
 // use mongodb::bson::{doc, to_document};
-use mongodb::Client;
+use mongodb::{Client, Collection};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
@@ -106,6 +106,18 @@ fn progress_bar_setup(n_pb_items: u64) -> (ProgressBar, ProgressBar) {
     (pb_rdns, pb_geo)
 }
 
+async fn setup_db(
+    config: &Config,
+) -> Result<(Collection<HostData>, Collection<LogEntry>), Box<dyn Error>> {
+    let client = Client::with_uri_str(&config.db_uri).await?;
+    // dbg!(client);
+    // TODO: should take dbname from config
+    let db = client.database("actulogs");
+    let host_data_coll: Collection<HostData> = db.collection("hostdata");
+    let logents_coll: Collection<LogEntry> = db.collection("logentries");
+    (host_data_coll, logents_coll)
+}
+
 pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     /* Strategy: Parse loglines into LogEntries
     Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
@@ -115,12 +127,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
      */
     let config = read_config();
     // * setup database
-    let client = Client::with_uri_str(&config.db_uri).await?;
-    // dbg!(client);
-    // TODO: should take dbname from config
-    let db = client.database("actulogs");
-    let host_data_coll: mongodb::Collection<HostData> = db.collection("hostdata");
-    let logents_coll: mongodb::Collection<LogEntry> = db.collection("logentries");
+    let (host_data_coll, logents_coll) = setup_db(&config).await?;
     // * input stage
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
