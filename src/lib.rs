@@ -11,7 +11,9 @@ use std::vec::Vec;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 use config_file::FromConfigFile;
-use serde::Deserialize;
+// use mongodb::bson::{doc, to_document};
+use mongodb::Client;
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
@@ -30,6 +32,7 @@ struct Config {
     db_uri: String,
 }
 
+#[derive(Serialize, Deserialize)]
 struct HostData {
     geodata: geo::Geodata,
     ptr_records: Vec<String>,
@@ -110,6 +113,14 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     Output to console
     Eventually, send to mongo db
      */
+    let config = read_config();
+    // * setup database
+    let client = Client::with_uri_str(&config.db_uri).await?;
+    // dbg!(client);
+    // TODO: should take dbname from config
+    let db = client.database("actulogs");
+    let host_data_coll: mongodb::Collection<HostData> = db.collection("hostdata");
+    let logents_coll: mongodb::Collection<LogEntry> = db.collection("logentries");
     // * input stage
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
@@ -139,7 +150,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
-    let config = read_config();
     for ip in ip_set2 {
         let txa2 = tx_geo.clone();
         let key = config.api_key.clone();
@@ -188,6 +198,10 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     for hd in ip_to_hostdata_map.values() {
         println!("{hd}");
     }
+
+    let docs = ip_to_hostdata_map.values();
+    host_data_coll.insert_many(docs, None).await?;
+    logents_coll.insert_many(logentries, None).await?;
 
     println!("Finished processing {le_count} log entries");
     // * end of output stuff

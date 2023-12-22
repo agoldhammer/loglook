@@ -3,6 +3,7 @@ use anyhow::{Context, Result};
 use chrono::DateTime;
 use core::convert::TryFrom;
 use regex::{Captures, Regex};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::net::IpAddr;
 
@@ -10,7 +11,7 @@ use std::net::IpAddr;
 // use crate::lkup::RevLookupData;
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogEntry {
     pub ip: IpAddr,
     pub time: String,

@@ -1,12 +1,12 @@
 // * handle geo lookups
 use reqwest;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{fmt, net::IpAddr};
 use tokio::sync::mpsc;
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Geodata {
     pub ip: IpAddr,
     country_name: String,
