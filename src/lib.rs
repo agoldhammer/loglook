@@ -1,17 +1,16 @@
 use console::style;
+use mongodb::bson::doc;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
-use std::net::IpAddr;
 use std::path::PathBuf;
 use std::vec::Vec;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 use config_file::FromConfigFile;
-// use mongodb::bson::{doc, to_document};
 use mongodb::{Client, Collection};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
@@ -32,8 +31,9 @@ struct Config {
     db_uri: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct HostData {
+    ip: String,
     geodata: geo::Geodata,
     ptr_records: Vec<String>,
 }
@@ -44,7 +44,7 @@ impl fmt::Display for HostData {
             f,
             "{}: {}",
             style("IP").bold().red(),
-            style(self.geodata.ip).green()
+            style(&self.ip).green()
         )
         .unwrap();
 
@@ -66,10 +66,10 @@ fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Erro
     Ok(io::BufReader::new(file).lines())
 }
 
-fn logents_to_ips_set(logentries: &[LogEntry]) -> HashSet<IpAddr> {
+fn logents_to_ips_set(logentries: &[LogEntry]) -> HashSet<String> {
     let mut ips = HashSet::new();
     for logentry in logentries {
-        ips.insert(logentry.ip);
+        ips.insert(logentry.ip.clone());
     }
     ips
 }
@@ -96,7 +96,6 @@ fn progress_bar_setup(n_pb_items: u64) -> (ProgressBar, ProgressBar) {
     )
     .unwrap()
     .progress_chars("##-");
-    // let n_pb_items = ip_set.len() as u64;
     let pb_rdns = m.add(ProgressBar::new(n_pb_items));
     pb_rdns.set_style(sty.clone());
     pb_rdns.set_message("rdns");
@@ -112,10 +111,10 @@ async fn setup_db(
     let client = Client::with_uri_str(&config.db_uri).await?;
     // dbg!(client);
     // TODO: should take dbname from config
-    let db = client.database("actulogs");
+    let db = client.database("loglook");
     let host_data_coll: Collection<HostData> = db.collection("hostdata");
     let logents_coll: Collection<LogEntry> = db.collection("logentries");
-    (host_data_coll, logents_coll)
+    Ok((host_data_coll, logents_coll))
 }
 
 pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
@@ -128,6 +127,16 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let config = read_config();
     // * setup database
     let (host_data_coll, logents_coll) = setup_db(&config).await?;
+
+    // ! experiment
+
+    // let query_ip = "78.153.140.219";
+
+    let query = doc! {"ip": "78.153.140.219"};
+    dbg!(&query);
+    let hd = host_data_coll.find_one(query, None).await?;
+    dbg!(hd);
+
     // * input stage
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
@@ -141,10 +150,11 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let ip_set = logents_to_ips_set(&logentries);
     // * need another ip_set for geolookups
     let ip_set2 = ip_set.clone();
-    // * ---------------
-    let (pb_rdns, pb_geo) = progress_bar_setup(ip_set.len() as u64);
+    // * --------------
+    let n_unique_ips = ip_set.len();
+    let (pb_rdns, pb_geo) = progress_bar_setup(n_unique_ips as u64);
 
-    let mut ips_to_rdns_map: HashMap<IpAddr, RevLookupData> = HashMap::new();
+    let mut ips_to_rdns_map: HashMap<String, RevLookupData> = HashMap::new();
 
     // * create channels to receive rev lkup results
     const CHAN_BUF_SIZE: usize = 256;
@@ -153,29 +163,29 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let mut join_set = JoinSet::new();
     for ip in ip_set {
         let txa = tx_rdns.clone();
-        join_set.spawn(async move { lkup::lkup_hostnames(ip, txa).await });
+        join_set.spawn(async move { lkup::lkup_hostnames(&ip, txa).await });
     }
 
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
     for ip in ip_set2 {
         let txa2 = tx_geo.clone();
         let key = config.api_key.clone();
-        join_set.spawn(async move { geo::geo_lkup(ip, txa2, key).await });
+        join_set.spawn(async move { geo::geo_lkup(&ip, txa2, key).await });
     }
 
     // * output stuff
     drop(tx_rdns); // have to drop the original channel that has been cloned for each task
     drop(tx_geo);
 
-    let mut ips_to_geodata_map: HashMap<IpAddr, geo::Geodata> = HashMap::new();
+    let mut ips_to_geodata_map: HashMap<String, geo::Geodata> = HashMap::new();
     while let Some(geo_lookup_data) = rx_geo.recv().await {
         pb_geo.inc(1);
-        let ip = geo_lookup_data.ip;
-        ips_to_geodata_map.insert(ip, geo_lookup_data);
+        let ip = geo_lookup_data.ip.clone();
+        ips_to_geodata_map.insert(ip.to_string(), geo_lookup_data);
     }
 
     while let Some(rev_lookup_data) = rx_rdns.recv().await {
-        let ip = rev_lookup_data.ip_addr;
+        let ip = rev_lookup_data.ip_addr.clone();
         pb_rdns.inc(1);
         ips_to_rdns_map.insert(ip, rev_lookup_data);
     }
@@ -186,14 +196,19 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let mut ip_to_hostdata_map = HashMap::new();
     println!("\nOutput");
     for (ip, geodata) in ips_to_geodata_map {
-        println!("{}: {}", style("IP").bold().red(), style(ip).green());
+        println!(
+            "{}: {}",
+            style("IP").bold().red(),
+            style(&ip.clone()).green()
+        );
         println!("{geodata}");
         let rdns = ips_to_rdns_map.get(&ip).unwrap();
         let hostdata = HostData {
+            ip: ip.to_string(),
             geodata,
             ptr_records: rdns.ptr_records.clone(),
         };
-        ip_to_hostdata_map.insert(ip, hostdata);
+        ip_to_hostdata_map.insert(ip.clone(), hostdata);
         println!("{rdns}\n");
         let les = logentries.iter().filter(|le| le.ip == ip);
         for le in les {
@@ -206,11 +221,11 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         println!("{hd}");
     }
 
-    let docs = ip_to_hostdata_map.values();
-    host_data_coll.insert_many(docs, None).await?;
-    logents_coll.insert_many(logentries, None).await?;
+    // let docs = ip_to_hostdata_map.values();
+    // host_data_coll.insert_many(docs, None).await?;
+    // logents_coll.insert_many(logentries, None).await?;
 
-    println!("Finished processing {le_count} log entries");
+    println!("Finished processing {le_count} log entries, {n_unique_ips} unique ips");
     // * end of output stuff
 
     while let Some(res) = join_set.join_next().await {
@@ -224,10 +239,28 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 mod tests {
     // use super::*;
     use crate::read_config;
+    // use mongodb::bson::{doc, to_document};
+    // use tokio_test::assert_ok;
+
+    // macro_rules! aw {
+    //     ($e:expr) => {
+    //         tokio_test::block_on($e)
+    //     };
+    // }
 
     #[test]
     fn config_read_rest() {
         let db_uri = read_config().db_uri;
         assert!(db_uri.contains("27017"));
     }
+
+    // #[test]
+    // fn item_in_db() {
+    //     let config = read_config();
+    //     let (hd_coll, _) = aw!(setup_db(&config)).unwrap();
+    //     // 78.153.140.219
+    //     let query = doc! {"geodata": {"ip": "78.153.140.219"}};
+    //     let hd = aw!(hd_coll.find_one(query, None)).unwrap();
+    //     // assert_eq!(Some(hd), { "ip" });
+    // }
 }

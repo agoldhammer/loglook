@@ -2,13 +2,15 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::{fmt, net::IpAddr};
+// use std::str::from_str;
+// use std::{fmt, net::IpAddr};
+use std::fmt;
 use tokio::sync::mpsc;
 
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Geodata {
-    pub ip: IpAddr,
+    pub ip: String,
     country_name: String,
     state_prov: String,
     city: String,
@@ -17,9 +19,9 @@ pub struct Geodata {
 }
 
 impl Geodata {
-    fn new(ip: &IpAddr) -> Geodata {
+    fn new(ip: &str) -> Geodata {
         Geodata {
-            ip: *ip,
+            ip: String::from(ip),
             country_name: "".to_string(),
             state_prov: "".to_string(),
             city: "".to_string(),
@@ -44,14 +46,14 @@ impl fmt::Display for Geodata {
 }
 
 // * send error message encapsulated in a Geodata struct
-async fn send_error(tx: mpsc::Sender<Geodata>, ip: &IpAddr, msg: &str) {
+async fn send_error(tx: mpsc::Sender<Geodata>, ip: &str, msg: &str) {
     let mut geod = Geodata::new(ip);
     // geod.ip = format!("{}", ip).to_string();
     geod.city = format!("Error in geodata lookup: {}", msg).to_string();
     tx.send(geod).await.expect("shd send geod error");
 }
 
-pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>, api_key: String) {
+pub async fn geo_lkup(ip: &str, tx: mpsc::Sender<Geodata>, api_key: String) {
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
     let res = reqwest::get(uri).await.unwrap();
     if res.status() == 200 {
@@ -62,12 +64,12 @@ pub async fn geo_lkup(ip: IpAddr, tx: mpsc::Sender<Geodata>, api_key: String) {
             }
             Err(e) => {
                 let msg = format!("error decoding json {}", e);
-                send_error(tx, &ip, &msg).await;
+                send_error(tx, ip, &msg).await;
             }
         };
     } else {
         let msg = format!("error acquiring geodata for IP {:?}", ip);
-        send_error(tx, &ip, &msg).await;
+        send_error(tx, ip, &msg).await;
     }
 }
 
@@ -87,7 +89,7 @@ mod tests {
     fn geo_lkup_bad_ip() {
         let api_key = read_config().api_key;
         let (tx, _rx) = mpsc::channel(32);
-        let ip: IpAddr = "192.168.0.116".parse().unwrap();
+        let ip = "192.168.0.116";
         assert_eq!(aw!(geo_lkup(ip, tx, api_key)), ());
     }
 }
