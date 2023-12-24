@@ -141,18 +141,9 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
      */
     let config = read_config();
     // * setup database
+    // TODO: remove this directive in final version
+    #[allow(unused_variables)]
     let (host_data_coll, logents_coll) = setup_db(&config).await?;
-
-    // ! experiment
-
-    // let query_ip = "78.153.140.219";
-
-    // let query = doc! {"ip": "78.153.140.219"};
-    // dbg!(&query);
-    // let hd = host_data_coll.find_one(query, None).await?;
-    // dbg!(hd);
-
-    // ! end experiment
 
     // * input stage
     let lines = read_lines(path)?;

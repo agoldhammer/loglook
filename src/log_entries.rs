@@ -5,10 +5,6 @@ use core::convert::TryFrom;
 use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
 use std::fmt;
-// use std::net::IpAddr;
-
-// use crate::geo;
-// use crate::lkup::RevLookupData;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
