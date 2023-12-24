@@ -118,15 +118,13 @@ async fn setup_db(
     Ok((host_data_coll, logents_coll))
 }
 
+// * check if ip is already in HostData collection in db
 async fn ip_in_hdcoll(
     ip: Arc<String>,
     host_data_coll: Arc<Collection<HostData>>,
 ) -> anyhow::Result<(Arc<String>, bool)> {
-    // println! {"iparc {ip}"};
     let query = doc! {"ip": ip.to_string()};
-    // let query = doc! {"ip": "192.168.0.1"};
     let maybe_hd = host_data_coll.find_one(query, None).await?;
-    // let retval;
     let retval = match maybe_hd {
         Some(_) => (ip, true),
         None => (ip, false),
@@ -180,12 +178,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         let iparc = Arc::new(ip);
         let hdcarc = Arc::clone(&hdc);
         ips_join_set.spawn(async move { ip_in_hdcoll(Arc::clone(&iparc), hdcarc).await.unwrap() });
-        // let (ipr, ip_in) = ip_in_hdcoll(&ip, &host_data_coll).await?;
-        // if ip_in {
-        //     println!("ATTN: {ipr} is in db");
-        // } else {
-        //     println!("ATTN: {ipr} is not in db");
-        // }
     }
     loop {
         let result = ips_join_set.join_next().await;
