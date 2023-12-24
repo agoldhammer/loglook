@@ -6,6 +6,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::vec::Vec;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -117,6 +118,22 @@ async fn setup_db(
     Ok((host_data_coll, logents_coll))
 }
 
+async fn ip_in_hdcoll(
+    ip: Arc<String>,
+    host_data_coll: Arc<Collection<HostData>>,
+) -> anyhow::Result<(Arc<String>, bool)> {
+    // println! {"iparc {ip}"};
+    let query = doc! {"ip": ip.to_string()};
+    // let query = doc! {"ip": "192.168.0.1"};
+    let maybe_hd = host_data_coll.find_one(query, None).await?;
+    // let retval;
+    let retval = match maybe_hd {
+        Some(_) => (ip, true),
+        None => (ip, false),
+    };
+    Ok(retval)
+}
+
 pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     /* Strategy: Parse loglines into LogEntries
     Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
@@ -132,10 +149,12 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     // let query_ip = "78.153.140.219";
 
-    let query = doc! {"ip": "78.153.140.219"};
-    dbg!(&query);
-    let hd = host_data_coll.find_one(query, None).await?;
-    dbg!(hd);
+    // let query = doc! {"ip": "78.153.140.219"};
+    // dbg!(&query);
+    // let hd = host_data_coll.find_one(query, None).await?;
+    // dbg!(hd);
+
+    // ! end experiment
 
     // * input stage
     let lines = read_lines(path)?;
@@ -150,6 +169,34 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let ip_set = logents_to_ips_set(&logentries);
     // * need another ip_set for geolookups
     let ip_set2 = ip_set.clone();
+
+    // ! this does not need to be mut in final version
+    // TODO spawn tasks to join all async calls
+    let mut ips_all = ip_set.clone();
+    let mut ips_join_set: JoinSet<(Arc<String>, bool)> = JoinSet::new();
+    let hdc = Arc::new(host_data_coll.clone());
+    ips_all.insert("192.168.0.1".to_string());
+    for ip in ips_all {
+        let iparc = Arc::new(ip);
+        let hdcarc = Arc::clone(&hdc);
+        ips_join_set.spawn(async move { ip_in_hdcoll(Arc::clone(&iparc), hdcarc).await.unwrap() });
+        // let (ipr, ip_in) = ip_in_hdcoll(&ip, &host_data_coll).await?;
+        // if ip_in {
+        //     println!("ATTN: {ipr} is in db");
+        // } else {
+        //     println!("ATTN: {ipr} is not in db");
+        // }
+    }
+    loop {
+        let result = ips_join_set.join_next().await;
+        match result {
+            Some(result) => {
+                let (ip, is_in) = result.unwrap();
+                println!("ip {} is in {}", ip, is_in);
+            }
+            None => break,
+        }
+    }
     // * --------------
     let n_unique_ips = ip_set.len();
     let (pb_rdns, pb_geo) = progress_bar_setup(n_unique_ips as u64);

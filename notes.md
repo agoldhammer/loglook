@@ -14,3 +14,9 @@
 ## geoip
 
 ### curl [geoip](https://api.ipgeolocation.io/ipgeo?apiKey=API_KEY&ip=8.8.8.8)
+
+## road map
+
+- add indices
+- separate out exists fn
+- filter out of all_ips those already looked up
