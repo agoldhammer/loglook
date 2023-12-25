@@ -161,11 +161,8 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // TODO spawn tasks to join all async calls
     let mut ips_all = ip_set.clone();
     let mut ips_join_set: JoinSet<(String, bool)> = JoinSet::new();
-    // let hdc = Arc::new(host_data_coll.clone());
     ips_all.insert("192.168.0.1".to_string());
     for ip in ips_all {
-        // let iparc = Arc::new(ip);
-        // let hdcarc = Arc::clone(&hdc);
         let hdc = host_data_coll.clone();
         ips_join_set.spawn(async move { ip_in_hdcoll(ip, hdc).await.unwrap() });
     }
