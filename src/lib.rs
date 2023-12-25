@@ -6,7 +6,6 @@ use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::vec::Vec;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -110,7 +109,6 @@ async fn setup_db(
     config: &Config,
 ) -> Result<(Collection<HostData>, Collection<LogEntry>), Box<dyn Error>> {
     let client = Client::with_uri_str(&config.db_uri).await?;
-    // dbg!(client);
     // TODO: should take dbname from config
     let db = client.database("loglook");
     let host_data_coll: Collection<HostData> = db.collection("hostdata");
@@ -120,9 +118,9 @@ async fn setup_db(
 
 // * check if ip is already in HostData collection in db
 async fn ip_in_hdcoll(
-    ip: Arc<String>,
-    host_data_coll: Arc<Collection<HostData>>,
-) -> anyhow::Result<(Arc<String>, bool)> {
+    ip: String,
+    host_data_coll: Collection<HostData>,
+) -> anyhow::Result<(String, bool)> {
     let query = doc! {"ip": ip.to_string()};
     let maybe_hd = host_data_coll.find_one(query, None).await?;
     let retval = match maybe_hd {
@@ -162,13 +160,14 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // ! this does not need to be mut in final version
     // TODO spawn tasks to join all async calls
     let mut ips_all = ip_set.clone();
-    let mut ips_join_set: JoinSet<(Arc<String>, bool)> = JoinSet::new();
-    let hdc = Arc::new(host_data_coll.clone());
+    let mut ips_join_set: JoinSet<(String, bool)> = JoinSet::new();
+    // let hdc = Arc::new(host_data_coll.clone());
     ips_all.insert("192.168.0.1".to_string());
     for ip in ips_all {
-        let iparc = Arc::new(ip);
-        let hdcarc = Arc::clone(&hdc);
-        ips_join_set.spawn(async move { ip_in_hdcoll(Arc::clone(&iparc), hdcarc).await.unwrap() });
+        // let iparc = Arc::new(ip);
+        // let hdcarc = Arc::clone(&hdc);
+        let hdc = host_data_coll.clone();
+        ips_join_set.spawn(async move { ip_in_hdcoll(ip, hdc).await.unwrap() });
     }
     loop {
         let result = ips_join_set.join_next().await;
