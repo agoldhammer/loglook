@@ -170,7 +170,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         let result = ips_join_set.join_next().await;
         match result {
             Some(result) => {
-                let (ip, is_in) = result.unwrap();
+                let (ip, is_in) = result?;
                 println!("ip {} is in {}", ip, is_in);
             }
             None => break,
