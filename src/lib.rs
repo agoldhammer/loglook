@@ -226,6 +226,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     drop(tx_rdns); // have to drop the original channel that has been cloned for each task
     drop(tx_geo);
 
+    // ! only freshly looked up data will be output here. Is that what is wanted?
     let mut ips_to_geodata_map: HashMap<String, geo::Geodata> = HashMap::new();
     while let Some(geo_lookup_data) = rx_geo.recv().await {
         pb_geo.inc(1);
@@ -271,8 +272,20 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     let docs = ip_to_hostdata_map.values();
-    host_data_coll.insert_many(docs, None).await?;
-    logents_coll.insert_many(logentries, None).await?;
+    if docs.len() > 0 {
+        host_data_coll.insert_many(docs, None).await?;
+    }
+    let mut inserted_count = 0;
+    let mut not_inserted_count = 0;
+    // ! insertion of logentries is done synchronously with this logic. May want to change??
+    for le in logentries {
+        let result = logents_coll.insert_one(le, None).await;
+        match result {
+            Ok(_) => inserted_count += 1,
+            Err(_) => not_inserted_count += 1,
+        }
+    }
+    println!("{inserted_count} inserted, {not_inserted_count} skipped");
 
     println!("Finished processing {le_count} log entries, {n_unique_ips} unique ips");
     // * end of output stuff
