@@ -1,5 +1,6 @@
 use console::style;
 use mongodb::bson::doc;
+use mongodb::options::IndexOptions;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt;
@@ -11,7 +12,7 @@ use std::vec::Vec;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 use config_file::FromConfigFile;
-use mongodb::{Client, Collection};
+use mongodb::{Client, Collection, IndexModel};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
@@ -112,7 +113,23 @@ async fn setup_db(
     // TODO: should take dbname from config
     let db = client.database("loglook");
     let host_data_coll: Collection<HostData> = db.collection("hostdata");
+    let hd_options = IndexOptions::builder().unique(true).build();
+    let hd_index_model = IndexModel::builder()
+        .keys(doc! {"ip": 1})
+        .options(hd_options)
+        .build();
+    #[allow(unused_variables)]
+    let hd_index = host_data_coll.create_index(hd_index_model, None).await?;
     let logents_coll: Collection<LogEntry> = db.collection("logentries");
+    let le_options = IndexOptions::builder().unique(true).build();
+    let le_index_model = IndexModel::builder()
+        .keys(doc! {"ip": 1, "time": 1})
+        .options(le_options)
+        .build();
+    #[allow(unused_variables)]
+    let le_index = logents_coll.create_index(le_index_model, None).await?;
+    // ! test
+    // println!("Indices {}, {}", hd_index.index_name, le_index.index_name);
     Ok((host_data_coll, logents_coll))
 }
 
@@ -154,8 +171,8 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     // * from raw logentries extract set of unique ips and map from ips
     let ip_set = logents_to_ips_set(&logentries);
-    // * need another ip_set for geolookups
-    let ip_set2 = ip_set.clone();
+    // ? * don't ? need another ip_set for geolookups
+    // let ip_set2 = ip_set.clone();
 
     // ! this does not need to be mut in final version
     // TODO spawn tasks to join all async calls
@@ -166,12 +183,18 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         let hdc = host_data_coll.clone();
         ips_join_set.spawn(async move { ip_in_hdcoll(ip, hdc).await.unwrap() });
     }
+    let mut ips_rdns_data_needed = HashSet::new();
+    let mut ips_geodata_needed = HashSet::new();
     loop {
         let result = ips_join_set.join_next().await;
         match result {
             Some(result) => {
                 let (ip, is_in) = result?;
                 println!("ip {} is in {}", ip, is_in);
+                if !is_in {
+                    ips_rdns_data_needed.insert(ip.clone());
+                    ips_geodata_needed.insert(ip.clone());
+                }
             }
             None => break,
         }
@@ -187,13 +210,13 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let (tx_rdns, mut rx_rdns) = mpsc::channel(CHAN_BUF_SIZE);
 
     let mut join_set = JoinSet::new();
-    for ip in ip_set {
+    for ip in ips_rdns_data_needed {
         let txa = tx_rdns.clone();
         join_set.spawn(async move { lkup::lkup_hostnames(&ip, txa).await });
     }
 
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
-    for ip in ip_set2 {
+    for ip in ips_geodata_needed {
         let txa2 = tx_geo.clone();
         let key = config.api_key.clone();
         join_set.spawn(async move { geo::geo_lkup(&ip, txa2, key).await });
@@ -247,9 +270,9 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         println!("{hd}");
     }
 
-    // let docs = ip_to_hostdata_map.values();
-    // host_data_coll.insert_many(docs, None).await?;
-    // logents_coll.insert_many(logentries, None).await?;
+    let docs = ip_to_hostdata_map.values();
+    host_data_coll.insert_many(docs, None).await?;
+    logents_coll.insert_many(logentries, None).await?;
 
     println!("Finished processing {le_count} log entries, {n_unique_ips} unique ips");
     // * end of output stuff
