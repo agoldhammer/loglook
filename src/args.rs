@@ -2,7 +2,7 @@
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
-// #[clap(Version, About)]
+#[clap(version = "0.2", about = "Log Reader")]
 pub struct LoglookArgs {
     /// show stuff
     #[clap(long, short, action)]
