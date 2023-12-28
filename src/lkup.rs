@@ -1,22 +1,22 @@
 use console::style;
 use std::fmt;
 use std::net::IpAddr;
+use std::str::FromStr;
 use std::time::Duration;
 
 use hickory_resolver::TokioAsyncResolver;
 
 use tokio::sync::mpsc;
-// use tokio::task::JoinSet;
 use tokio::time::timeout;
 
 #[derive(Debug)]
 pub struct RevLookupData {
-    pub ip_addr: IpAddr,
+    pub ip_addr: String,
     pub ptr_records: Vec<String>,
 }
 
 impl RevLookupData {
-    fn new(ip_addr: IpAddr) -> RevLookupData {
+    fn new(ip_addr: String) -> RevLookupData {
         RevLookupData {
             ip_addr,
             ptr_records: Vec::new(),
@@ -34,17 +34,17 @@ impl fmt::Display for RevLookupData {
 }
 
 // * Do reverse lookup on ip_str, send result out on channel tx
-pub async fn lkup_hostnames(ip: IpAddr, tx: mpsc::Sender<RevLookupData>) {
+pub async fn lkup_hostnames(ip: &str, tx: mpsc::Sender<RevLookupData>) {
     const TIMEOUT_MS: u64 = 1000;
     let resolver = TokioAsyncResolver::tokio_from_system_conf().unwrap();
 
-    let reverse_lookup = resolver.reverse_lookup(ip);
+    let reverse_lookup = resolver.reverse_lookup(IpAddr::from_str(ip).unwrap());
     let timeout_duration = Duration::from_millis(TIMEOUT_MS);
     let lookup_result = timeout(timeout_duration, reverse_lookup).await;
-    let mut rev_lookup_data = RevLookupData::new(ip);
+    let mut rev_lookup_data = RevLookupData::new(ip.to_string());
     match lookup_result {
         Ok(Ok(lookup_result)) => {
-            //successful lookup
+            // * successful lookup
             rev_lookup_data.ptr_records = lookup_result
                 .iter()
                 .map(|record| format!("{}", record))
