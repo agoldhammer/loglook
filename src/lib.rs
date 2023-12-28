@@ -178,8 +178,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         n_unique_ips: 0,
     };
     // * setup database
-    // TODO: remove this directive in final version
-    #[allow(unused_variables)]
     let (host_data_coll, logents_coll) = setup_db(&config).await?;
 
     // * input stage
