@@ -17,6 +17,8 @@
 
 ## road map
 
-- add indices
-- separate out exists fn
-- filter out of all_ips those already looked up
+- ~~add indices~~
+- ~~separate out exists fn~~
+- ~~filter out of all_ips those already looked up~~
+- add cli options to choose what kind of output
+- add db selection by time

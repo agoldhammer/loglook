@@ -245,7 +245,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     drop(tx_rdns); // have to drop the original channel that has been cloned for each task
     drop(tx_geo);
 
-    // ! only freshly looked up data will be output here. Is that what is wanted?
+    // ! only les associated with freshly looked up ips will be output here. Is that what is wanted?
     let mut ips_to_geodata_map: HashMap<String, geo::Geodata> = HashMap::new();
     while let Some(geo_lookup_data) = rx_geo.recv().await {
         pb_geo.inc(1);
