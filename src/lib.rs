@@ -193,8 +193,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     // * from raw logentries extract set of unique ips and map from ips
     let ip_set = logents_to_ips_set(&logentries);
-    // ? * don't ? need another ip_set for geolookups
-    // let ip_set2 = ip_set.clone();
 
     // TODO spawn tasks to join all async calls
     let ips_all = ip_set.clone();
@@ -210,7 +208,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         match result {
             Some(result) => {
                 let (ip, is_in) = result?;
-                println!("ip {} is in {}", ip, is_in);
+                // println!("ip {} is in {}", ip, is_in);
                 if !is_in {
                     ips_rdns_data_needed.insert(ip.clone());
                     ips_geodata_needed.insert(ip.clone());
