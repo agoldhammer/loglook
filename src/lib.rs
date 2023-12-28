@@ -55,6 +55,14 @@ impl fmt::Display for HostData {
         })
     }
 }
+#[derive(Debug)]
+pub struct Counts {
+    pub n_logents: usize,
+    pub n_unique_ips: usize,
+    pub n_new_ips: usize,
+    pub n_inserted_les: usize,
+    pub n_skipped_les: usize,
+}
 
 fn read_config() -> Config {
     let path = shellexpand::tilde("~/.loglook/config.toml");
@@ -120,6 +128,8 @@ async fn setup_db(
         .build();
     #[allow(unused_variables)]
     let hd_index = host_data_coll.create_index(hd_index_model, None).await?;
+    // * Indices on LogEntry collection
+    // * Need several; first is compound on ip and time
     let logents_coll: Collection<LogEntry> = db.collection("logentries");
     let le_options = IndexOptions::builder().unique(true).build();
     let le_index_model = IndexModel::builder()
@@ -128,7 +138,12 @@ async fn setup_db(
         .build();
     #[allow(unused_variables)]
     let le_index = logents_coll.create_index(le_index_model, None).await?;
-    // ! test
+    // * second is on time alone; non-unique
+    let le_time_index_model = IndexModel::builder()
+        .keys(doc! {"time": 1})
+        .options(None)
+        .build();
+    logents_coll.create_index(le_time_index_model, None).await?;
     // println!("Indices {}, {}", hd_index.index_name, le_index.index_name);
     Ok((host_data_coll, logents_coll))
 }
@@ -155,6 +170,13 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     Eventually, send to mongo db
      */
     let config = read_config();
+    let mut counts = Counts {
+        n_inserted_les: 0,
+        n_logents: 0,
+        n_new_ips: 0,
+        n_skipped_les: 0,
+        n_unique_ips: 0,
+    };
     // * setup database
     // TODO: remove this directive in final version
     #[allow(unused_variables)]
@@ -164,8 +186,8 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
     let logentries = make_logentries(lines);
-    let le_count = logentries.len();
-    println!("Log lines: {le_count}");
+    counts.n_logents = logentries.len();
+    // println!("Log lines: {le_count}");
 
     // * end of input stage, resulting in raw logentries
 
@@ -174,11 +196,9 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // ? * don't ? need another ip_set for geolookups
     // let ip_set2 = ip_set.clone();
 
-    // ! this does not need to be mut in final version
     // TODO spawn tasks to join all async calls
-    let mut ips_all = ip_set.clone();
+    let ips_all = ip_set.clone();
     let mut ips_join_set: JoinSet<(String, bool)> = JoinSet::new();
-    ips_all.insert("192.168.0.1".to_string());
     for ip in ips_all {
         let hdc = host_data_coll.clone();
         ips_join_set.spawn(async move { ip_in_hdcoll(ip, hdc).await.unwrap() });
@@ -200,8 +220,9 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
         }
     }
     // * --------------
-    let n_unique_ips = ip_set.len();
-    let (pb_rdns, pb_geo) = progress_bar_setup(n_unique_ips as u64);
+    counts.n_unique_ips = ip_set.len();
+    counts.n_new_ips = ips_rdns_data_needed.len();
+    let (pb_rdns, pb_geo) = progress_bar_setup(counts.n_unique_ips as u64);
 
     let mut ips_to_rdns_map: HashMap<String, RevLookupData> = HashMap::new();
 
@@ -275,19 +296,17 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     if docs.len() > 0 {
         host_data_coll.insert_many(docs, None).await?;
     }
-    let mut inserted_count = 0;
-    let mut not_inserted_count = 0;
     // ! insertion of logentries is done synchronously with this logic. May want to change??
     for le in logentries {
         let result = logents_coll.insert_one(le, None).await;
         match result {
-            Ok(_) => inserted_count += 1,
-            Err(_) => not_inserted_count += 1,
+            Ok(_) => counts.n_inserted_les += 1,
+            Err(_) => counts.n_skipped_les += 1,
         }
     }
-    println!("{inserted_count} inserted, {not_inserted_count} skipped");
 
-    println!("Finished processing {le_count} log entries, {n_unique_ips} unique ips");
+    // * Display counts
+    println!("Counts: {:?}", counts);
     // * end of output stuff
 
     while let Some(res) = join_set.join_next().await {
