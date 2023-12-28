@@ -1,6 +1,4 @@
 /target
 /data
 config.toml
-
-
-.DS_Store
+.DS_store

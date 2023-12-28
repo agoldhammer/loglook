@@ -3,16 +3,13 @@ use anyhow::{Context, Result};
 use chrono::DateTime;
 use core::convert::TryFrom;
 use regex::{Captures, Regex};
+use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::net::IpAddr;
-
-// use crate::geo;
-// use crate::lkup::RevLookupData;
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogEntry {
-    pub ip: IpAddr,
+    pub ip: String,
     pub time: String,
     pub method: String,
     pub code: u32,
@@ -53,14 +50,14 @@ impl TryFrom<&String> for LogEntry {
             .captures(line)
             .with_context(|| format!("Failed to parse line: {:?}", line))?;
         let ip_str = get_re_match_part(&caps, "ip");
-        let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
+        // let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
         let code_str = get_re_match_part(&caps, "code");
         let nbytes_str = get_re_match_part(&caps, "nbytes");
         let time_str = get_re_match_part(&caps, "time");
         let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z")
             .expect("should be valid time fmt");
         let le = LogEntry {
-            ip,
+            ip: ip_str.to_string(),
             time: time.to_string(),
             method: get_re_match_part(&caps, "method"),
             code: code_str.parse().unwrap(),
