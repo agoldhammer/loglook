@@ -216,6 +216,7 @@ dependencies = [
  "ahash",
  "base64 0.13.1",
  "bitvec",
+ "chrono",
  "hex",
  "indexmap 1.9.3",
  "js-sys",
@@ -1086,6 +1087,7 @@ name = "loglook"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bson",
  "chrono",
  "clap",
  "config-file",

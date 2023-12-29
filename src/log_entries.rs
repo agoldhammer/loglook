@@ -1,7 +1,8 @@
 // LogEntry holds info derived from one line of log file
 use anyhow::{Context, Result};
-use chrono::DateTime;
-use chrono::FixedOffset;
+use bson;
+use chrono;
+// use chrono::FixedOffset;
 use core::convert::TryFrom;
 use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
@@ -11,7 +12,7 @@ use std::fmt;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogEntry {
     pub ip: String,
-    pub time: DateTime<FixedOffset>,
+    pub time: bson::DateTime,
     pub method: String,
     pub code: u32,
     pub nbytes: u32,
@@ -55,11 +56,13 @@ impl TryFrom<&String> for LogEntry {
         let code_str = get_re_match_part(&caps, "code");
         let nbytes_str = get_re_match_part(&caps, "nbytes");
         let time_str = get_re_match_part(&caps, "time");
-        let time = DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z")
-            .expect("should be valid time fmt");
+        let ct_time_fixed =
+            chrono::DateTime::parse_from_str(time_str.as_str(), "%d/%b/%Y:%H:%M:%S %z")
+                .expect("should be valid time fmt");
+        let ct_utc: chrono::DateTime<chrono::Utc> = ct_time_fixed.into();
         let le = LogEntry {
             ip: ip_str.to_string(),
-            time: time,
+            time: ct_utc.into(),
             method: get_re_match_part(&caps, "method"),
             code: code_str.parse().unwrap(),
             nbytes: nbytes_str.parse().unwrap(),
