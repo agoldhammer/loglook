@@ -132,8 +132,9 @@ async fn setup_db(
     // * Need several; first is compound on ip and time
     let logents_coll: Collection<LogEntry> = db.collection("logentries");
     let le_options = IndexOptions::builder().unique(true).build();
+    // * need to include method in this index because ip+time is not enough to get uniqueness
     let le_index_model = IndexModel::builder()
-        .keys(doc! {"ip": 1, "time": 1})
+        .keys(doc! {"ip": 1, "time": 1, "method": 1, "code": 1, "nbytes": 1})
         .options(le_options)
         .build();
     #[allow(unused_variables)]
