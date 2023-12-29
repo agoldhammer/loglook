@@ -7,6 +7,7 @@ use std::process;
 async fn main() {
     let args = LoglookArgs::parse();
     println!("Opening file: {:?}", args.path);
+    println!("Show {}", args.show);
     let result = loglook::run(&args.path).await;
     match result {
         Ok(()) => process::exit(0),
