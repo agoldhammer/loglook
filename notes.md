@@ -22,3 +22,4 @@
 - ~~filter out of all_ips those already looked up~~
 - add cli options to choose what kind of output
 - add db selection by time
+- serializing Datetimes [dt](https://docs.rs/bson/latest/bson/struct.DateTime.html)
