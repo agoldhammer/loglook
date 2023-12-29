@@ -119,7 +119,7 @@ async fn setup_db(
 ) -> Result<(Collection<HostData>, Collection<LogEntry>), Box<dyn Error>> {
     let client = Client::with_uri_str(&config.db_uri).await?;
     // TODO: should take dbname from config
-    let db = client.database("loglook");
+    let db = client.database("loglook2");
     let host_data_coll: Collection<HostData> = db.collection("hostdata");
     let hd_options = IndexOptions::builder().unique(true).build();
     let hd_index_model = IndexModel::builder()
