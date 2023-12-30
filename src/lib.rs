@@ -183,7 +183,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let (host_data_coll, logents_coll) = setup_db(&config).await?;
 
     // ! for testing query
-    query::find_yesterday(logents_coll.clone()).await;
+    query::find_yesterday2(logents_coll.clone()).await;
     // ! end test
 
     // * input stage
