@@ -274,7 +274,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
             style("IP").bold().red(),
             style(&ip.clone()).green()
         );
-        println!("{geodata}");
+        print!("{geodata}");
         let rdns = ips_to_rdns_map.get(&ip).unwrap();
         let hostdata = HostData {
             ip: ip.to_string(),
