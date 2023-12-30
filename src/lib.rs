@@ -20,6 +20,7 @@ use tokio::task::JoinSet;
 pub mod geo;
 pub mod lkup;
 pub mod log_entries;
+pub mod query;
 
 use log_entries::LogEntry;
 
@@ -180,6 +181,10 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     };
     // * setup database
     let (host_data_coll, logents_coll) = setup_db(&config).await?;
+
+    // ! for testing query
+    query::find_yesterday(logents_coll.clone()).await;
+    // ! end test
 
     // * input stage
     let lines = read_lines(path)?;
