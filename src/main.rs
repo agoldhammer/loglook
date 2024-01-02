@@ -2,7 +2,6 @@
 // use args::Cli;
 // use args::{Commands, LoglookArgs};
 use clap::{Args, Parser, Subcommand};
-use loglook::query;
 use std::process;
 
 // * https://rust-cli-recommendations.sunshowers.io/handling-arguments.html
@@ -71,7 +70,7 @@ async fn main() {
     let result = match &cli.command {
         #[allow(unused_variables)]
         Command::Read { daemon, path } => loglook::run(path).await,
-        Command::FindTime { start } => query::find_yesterday3(coll).await,
+        Command::FindTime { start } => loglook::get_daterange(start).await,
         // Command::FindIp(ip) => nop,
     };
 

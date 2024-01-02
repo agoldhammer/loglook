@@ -318,6 +318,15 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+pub async fn get_daterange(start: &str) -> Result<(), Box<dyn Error>> {
+    let config = read_config();
+
+    let (_, logents_coll) = setup_db(&config).await?;
+    println!("{start}");
+    query::find_yesterday3(logents_coll).await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     // use super::*;
