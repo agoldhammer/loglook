@@ -1,6 +1,3 @@
-// mod args;
-// use args::Cli;
-// use args::{Commands, LoglookArgs};
 use clap::{Args, Parser, Subcommand};
 use std::process;
 
@@ -31,13 +28,25 @@ enum Command {
         /// days back from present time, e.g. 2
         #[clap(long, short, required_unless_present("start"), conflicts_with("start"))]
         days: Option<i32>,
-        // #[clap(long, short, required_unless_present("days"))]
+
         /// start time, e.g. ISO: 2023-12-29T00:00:00Z
-        #[clap(long, short, required_unless_present("days"), conflicts_with("days"))]
+        #[clap(
+            long,
+            short,
+            requires("end"),
+            required_unless_present("days"),
+            conflicts_with("days")
+        )]
         start: Option<String>,
-        // #[clap(long, short, required_unless_present("days"))]
+
         /// end time e.g. ISO: 2023-12-29T00:00:00Z
-        #[clap(long, short, required_unless_present("days"), conflicts_with("days"))]
+        #[clap(
+            long,
+            short,
+            requires("start"),
+            required_unless_present("days"),
+            conflicts_with("days")
+        )]
         end: Option<String>,
     },
     // / Search for data by IP address
@@ -79,7 +88,7 @@ async fn main() {
         #[allow(unused_variables)]
         Command::Read { daemon, path } => loglook::run(path).await,
         Command::FindTime { start, end, days } => {
-            println!("{}, {}, {}", start.is_some(), end.is_some(), days.is_some());
+            println!("{:?}, {:?}, {:?}", start, end, days);
             Ok(())
         } //loglook::get_daterange(start, end, &5i32).await,
           // Command::FindIp(ip) => nop,
