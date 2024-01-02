@@ -1,5 +1,6 @@
 use crate::log_entries::LogEntry;
 use bson;
+use std::error::Error;
 // use bson::from_document;
 use bson::Bson;
 use bson::Document;
@@ -51,7 +52,8 @@ async fn find_ips_in_daterange(coll: Collection<LogEntry>) -> IpsInDaterange {
     ips_in_daterange
 }
 
-pub async fn find_yesterday3(coll: Collection<LogEntry>) {
+pub async fn find_yesterday3(coll: Collection<LogEntry>) -> Result<(), Box<dyn Error>> {
     let ips_in_dr = find_ips_in_daterange(coll).await;
     println! {"ips in dr: {:?}", ips_in_dr};
+    Ok(())
 }

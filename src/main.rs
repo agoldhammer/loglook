@@ -2,6 +2,7 @@
 // use args::Cli;
 // use args::{Commands, LoglookArgs};
 use clap::{Args, Parser, Subcommand};
+use loglook::query;
 use std::process;
 
 // * https://rust-cli-recommendations.sunshowers.io/handling-arguments.html
@@ -26,6 +27,11 @@ enum Command {
         /// The path to read logfile from
         path: std::path::PathBuf,
         // (can #[clap(flatten)] other argument structs here)
+    },
+    /// Find ips in date range
+    FindTime {
+        #[clap(long, short)]
+        start: String,
     },
     // / Search for data by IP address
     // FindIp(FindIpArgs),
@@ -65,6 +71,7 @@ async fn main() {
     let result = match &cli.command {
         #[allow(unused_variables)]
         Command::Read { daemon, path } => loglook::run(path).await,
+        Command::FindTime { start } => query::find_yesterday3(coll).await,
         // Command::FindIp(ip) => nop,
     };
 
