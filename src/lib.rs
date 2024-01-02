@@ -318,11 +318,12 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub async fn get_daterange(start: &str) -> Result<(), Box<dyn Error>> {
+#[allow(unused_variables)]
+pub async fn get_daterange(start: &str, end: &str, days: &i32) -> Result<(), Box<dyn Error>> {
     let config = read_config();
 
     let (_, logents_coll) = setup_db(&config).await?;
-    println!("{start}");
+    println!("{start}-{end}--{days}");
     query::find_yesterday3(logents_coll).await?;
     Ok(())
 }

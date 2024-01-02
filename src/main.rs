@@ -5,7 +5,6 @@ use clap::{Args, Parser, Subcommand};
 use std::process;
 
 // * https://rust-cli-recommendations.sunshowers.io/handling-arguments.html
-/// Here's my app!
 #[derive(Debug, Parser)]
 #[clap(name = "loglook", version = "0.2", about = "Log Reader")]
 pub struct App {
@@ -29,8 +28,17 @@ enum Command {
     },
     /// Find ips in date range
     FindTime {
-        #[clap(long, short)]
-        start: String,
+        /// days back from present time, e.g. 2
+        #[clap(long, short, required_unless_present("start"), conflicts_with("start"))]
+        days: Option<i32>,
+        // #[clap(long, short, required_unless_present("days"))]
+        /// start time, e.g. ISO: 2023-12-29T00:00:00Z
+        #[clap(long, short, required_unless_present("days"), conflicts_with("days"))]
+        start: Option<String>,
+        // #[clap(long, short, required_unless_present("days"))]
+        /// end time e.g. ISO: 2023-12-29T00:00:00Z
+        #[clap(long, short, required_unless_present("days"), conflicts_with("days"))]
+        end: Option<String>,
     },
     // / Search for data by IP address
     // FindIp(FindIpArgs),
@@ -70,8 +78,11 @@ async fn main() {
     let result = match &cli.command {
         #[allow(unused_variables)]
         Command::Read { daemon, path } => loglook::run(path).await,
-        Command::FindTime { start } => loglook::get_daterange(start).await,
-        // Command::FindIp(ip) => nop,
+        Command::FindTime { start, end, days } => {
+            println!("{}, {}, {}", start.is_some(), end.is_some(), days.is_some());
+            Ok(())
+        } //loglook::get_daterange(start, end, &5i32).await,
+          // Command::FindIp(ip) => nop,
     };
 
     match result {
