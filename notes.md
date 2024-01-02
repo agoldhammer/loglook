@@ -23,3 +23,7 @@
 - add cli options to choose what kind of output
 - add db selection by time
 - serializing Datetimes [dt](https://docs.rs/bson/latest/bson/struct.DateTime.html)
+
+## cli
+
+- options -D daemon-mode -o onlyheaders subcommand [time -s date -e date -d # -h #] [ip string] [org string] [country string] (-f) FILE(w default)

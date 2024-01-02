@@ -9,7 +9,7 @@ use chrono;
 use mongodb::bson::doc;
 // use mongodb::error::Error;
 #[allow(unused_imports)]
-use futures::stream::{StreamExt, TryStreamExt};
+use futures::stream::StreamExt;
 use mongodb::{Collection, Cursor};
 type IpsInDaterange = Vec<String>;
 
@@ -92,7 +92,7 @@ async fn get_unique_ips_in_daterange(
 //     }
 // }
 
-pub async fn find_ips_in_daterange(coll: Collection<LogEntry>) -> IpsInDaterange {
+async fn find_ips_in_daterange(coll: Collection<LogEntry>) -> IpsInDaterange {
     let mut cursor = get_unique_ips_in_daterange(coll).await.unwrap();
     let mut ips_in_daterange: IpsInDaterange = vec![];
     while let Some(maybe_ipdoc) = cursor.next().await {
