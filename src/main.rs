@@ -24,30 +24,29 @@ enum Command {
         // (can #[clap(flatten)] other argument structs here)
     },
     /// Find ips in date range
-    FindTime {
-        /// days back from present time, e.g. 2
-        #[clap(long, short, required_unless_present("start"), conflicts_with("start"))]
-        days: Option<i32>,
-
+    Search {
+        // / days back from present time, e.g. 2
+        // #[clap(long, short, required_unless_present("start"), conflicts_with("start"))]
+        // days: Option<i32>,
         /// start time, e.g. ISO: 2023-12-29T00:00:00Z
-        #[clap(
-            long,
-            short,
-            requires("end"),
-            required_unless_present("days"),
-            conflicts_with("days")
-        )]
-        start: Option<String>,
+        #[clap(long, short)]
+        start: String,
 
         /// end time e.g. ISO: 2023-12-29T00:00:00Z
-        #[clap(
-            long,
-            short,
-            requires("start"),
-            required_unless_present("days"),
-            conflicts_with("days")
-        )]
-        end: Option<String>,
+        #[clap(long, short)]
+        end: String,
+
+        /// search for IP address
+        #[clap(long, short)]
+        ip: Option<String>,
+
+        /// search by country
+        #[clap(long, short)]
+        country: Option<String>,
+
+        /// search by organization
+        #[clap(long, short)]
+        org: Option<String>,
     },
     // / Search for data by IP address
     // FindIp(FindIpArgs),
@@ -87,8 +86,17 @@ async fn main() {
     let result = match &cli.command {
         #[allow(unused_variables)]
         Command::Read { daemon, path } => loglook::run(path).await,
-        Command::FindTime { start, end, days } => {
-            println!("{:?}, {:?}, {:?}", start, end, days);
+        Command::Search {
+            start,
+            end,
+            ip,
+            country,
+            org,
+        } => {
+            println!(
+                "s {:?}, e {:?}, ip {:?} co {:?} org {:?}",
+                start, end, ip, country, org
+            );
             Ok(())
         } //loglook::get_daterange(start, end, &5i32).await,
           // Command::FindIp(ip) => nop,
