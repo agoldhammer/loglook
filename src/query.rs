@@ -61,6 +61,8 @@ async fn find_ips_in_daterange(
     ips_in_daterange
 }
 
+// TODO: Make fn above public, fix up error handling so can be called from lib.rs
+// https://antoinerr.github.io/blog-website/2023/01/28/rust-anyhow.html
 pub async fn find_yesterday3(
     coll: Collection<LogEntry>,
     start_utc: Logdate,
