@@ -344,7 +344,7 @@ pub async fn search(
     println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);
     query::find_yesterday3(logents_coll, start_utc, end_utc).await?;
     let hd = get_hostdata("65.49.1.106", hostdata_coll).await?;
-    println!("hostdata: {:?}", hd);
+    println!("hostdata: {}", hd);
     Ok(())
 }
 
