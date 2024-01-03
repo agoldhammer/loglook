@@ -1,3 +1,4 @@
+use chrono;
 use console::style;
 use mongodb::bson::doc;
 use mongodb::options::IndexOptions;
@@ -25,6 +26,8 @@ pub mod query;
 use log_entries::LogEntry;
 
 use crate::lkup::RevLookupData;
+
+type Logdate = chrono::DateTime<chrono::Utc>;
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
@@ -318,13 +321,20 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[allow(unused_variables)]
-pub async fn get_daterange(start: &str, end: &str, days: &i32) -> Result<(), Box<dyn Error>> {
+pub async fn search(
+    start: &str,
+    end: &str,
+    ip: &Option<String>,
+    country: &Option<String>,
+    org: &Option<String>,
+) -> Result<(), Box<dyn Error>> {
     let config = read_config();
 
     let (_, logents_coll) = setup_db(&config).await?;
-    println!("{start}-{end}--{days}");
-    query::find_yesterday3(logents_coll).await?;
+    let start_utc: Logdate = start.parse().unwrap();
+    let end_utc: Logdate = end.parse().unwrap();
+    println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);
+    query::find_yesterday3(logents_coll, start_utc, end_utc).await?;
     Ok(())
 }
 

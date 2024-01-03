@@ -4,9 +4,10 @@ use std::error::Error;
 // use bson::from_document;
 use bson::Bson;
 use bson::Document;
-use chrono;
+// use chrono;
 // use serde::Deserialize;
 // use chrono::prelude::*;
+use super::Logdate;
 use mongodb::bson::doc;
 // use mongodb::error::Error;
 #[allow(unused_imports)]
@@ -16,11 +17,13 @@ type IpsInDaterange = Vec<String>;
 
 async fn get_unique_ips_in_daterange(
     coll: Collection<LogEntry>,
+    start_utc: Logdate,
+    end_utc: Logdate,
 ) -> Result<Cursor<Document>, mongodb::error::Error> {
-    let ct_start: chrono::DateTime<chrono::Utc> = "2023-12-30T16:00:00Z".parse().unwrap();
-    let ct_end: chrono::DateTime<chrono::Utc> = "2023-12-30T20:00:00Z".parse().unwrap();
-    let s: bson::DateTime = ct_start.into();
-    let e: bson::DateTime = ct_end.into();
+    // let ct_start: chrono::DateTime<chrono::Utc> = "2023-12-30T16:00:00Z".parse().unwrap();
+    // let ct_end: chrono::DateTime<chrono::Utc> = "2023-12-30T20:00:00Z".parse().unwrap();
+    let s: bson::DateTime = start_utc.into();
+    let e: bson::DateTime = end_utc.into();
     // let filter = doc! {"time": {"$gte": s, "$lt": e}};
     let time_filter = doc! {"$match": {"time": {"$gte": s, "$lt": e}}};
     // let sort_by_ip = doc! {"$sort": {"ip": 1}};
@@ -30,8 +33,14 @@ async fn get_unique_ips_in_daterange(
     coll.aggregate(pipeline, None).await
 }
 
-async fn find_ips_in_daterange(coll: Collection<LogEntry>) -> IpsInDaterange {
-    let mut cursor = get_unique_ips_in_daterange(coll).await.unwrap();
+async fn find_ips_in_daterange(
+    coll: Collection<LogEntry>,
+    start_utc: Logdate,
+    end_utc: Logdate,
+) -> IpsInDaterange {
+    let mut cursor = get_unique_ips_in_daterange(coll, start_utc, end_utc)
+        .await
+        .unwrap();
     let mut ips_in_daterange: IpsInDaterange = vec![];
     while let Some(maybe_ipdoc) = cursor.next().await {
         // eprintln!("there are some");
@@ -52,8 +61,12 @@ async fn find_ips_in_daterange(coll: Collection<LogEntry>) -> IpsInDaterange {
     ips_in_daterange
 }
 
-pub async fn find_yesterday3(coll: Collection<LogEntry>) -> Result<(), Box<dyn Error>> {
-    let ips_in_dr = find_ips_in_daterange(coll).await;
+pub async fn find_yesterday3(
+    coll: Collection<LogEntry>,
+    start_utc: Logdate,
+    end_utc: Logdate,
+) -> Result<(), Box<dyn Error>> {
+    let ips_in_dr = find_ips_in_daterange(coll, start_utc, end_utc).await;
     println! {"ips in dr: {:?}", ips_in_dr};
     Ok(())
 }

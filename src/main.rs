@@ -97,9 +97,8 @@ async fn main() {
                 "s {:?}, e {:?}, ip {:?} co {:?} org {:?}",
                 start, end, ip, country, org
             );
-            Ok(())
-        } //loglook::get_daterange(start, end, &5i32).await,
-          // Command::FindIp(ip) => nop,
+            loglook::search(start, end, ip, country, org).await
+        }
     };
 
     match result {
