@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use chrono;
 use console::style;
 use mongodb::bson::doc;
@@ -28,6 +29,8 @@ use log_entries::LogEntry;
 use crate::lkup::RevLookupData;
 
 type Logdate = chrono::DateTime<chrono::Utc>;
+type LogEntryColl = Collection<LogEntry>;
+type HostDataColl = Collection<HostData>;
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
@@ -37,10 +40,10 @@ struct Config {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct HostData {
-    ip: String,
-    geodata: geo::Geodata,
-    ptr_records: Vec<String>,
+pub struct HostData {
+    pub ip: String,
+    pub geodata: geo::Geodata,
+    pub ptr_records: Vec<String>,
 }
 
 impl fmt::Display for HostData {
@@ -118,13 +121,11 @@ fn progress_bar_setup(n_pb_items: u64) -> (ProgressBar, ProgressBar) {
     (pb_rdns, pb_geo)
 }
 
-async fn setup_db(
-    config: &Config,
-) -> Result<(Collection<HostData>, Collection<LogEntry>), Box<dyn Error>> {
+async fn setup_db(config: &Config) -> Result<(HostDataColl, LogEntryColl), Box<dyn Error>> {
     let client = Client::with_uri_str(&config.db_uri).await?;
     // TODO: should take dbname from config
     let db = client.database("loglook");
-    let host_data_coll: Collection<HostData> = db.collection("hostdata");
+    let host_data_coll: HostDataColl = db.collection("hostdata");
     let hd_options = IndexOptions::builder().unique(true).build();
     let hd_index_model = IndexModel::builder()
         .keys(doc! {"ip": 1})
@@ -134,7 +135,7 @@ async fn setup_db(
     let hd_index = host_data_coll.create_index(hd_index_model, None).await?;
     // * Indices on LogEntry collection
     // * Need several; first is compound on ip and time
-    let logents_coll: Collection<LogEntry> = db.collection("logentries");
+    let logents_coll: LogEntryColl = db.collection("logentries");
     let le_options = IndexOptions::builder().unique(true).build();
     // * need to include method in this index because ip+time is not enough to get uniqueness
     let le_index_model = IndexModel::builder()
@@ -154,10 +155,7 @@ async fn setup_db(
 }
 
 // * check if ip is already in HostData collection in db
-async fn ip_in_hdcoll(
-    ip: String,
-    host_data_coll: Collection<HostData>,
-) -> anyhow::Result<(String, bool)> {
+async fn ip_in_hdcoll(ip: String, host_data_coll: HostDataColl) -> anyhow::Result<(String, bool)> {
     let query = doc! {"ip": ip.to_string()};
     let maybe_hd = host_data_coll.find_one(query, None).await?;
     let retval = match maybe_hd {
@@ -321,20 +319,32 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// given an ip, lookup hostdata
+pub async fn get_hostdata(ip: &str, hd_coll: HostDataColl) -> anyhow::Result<HostData> {
+    let maybe_hd = hd_coll.find_one(doc! {"ip": ip}, None).await?;
+    println!("{:?}", maybe_hd);
+    match maybe_hd {
+        Some(hd) => Ok(hd),
+        None => Err(anyhow!("ip not found")),
+    }
+}
+
 pub async fn search(
     start: &str,
     end: &str,
     ip: &Option<String>,
     country: &Option<String>,
     org: &Option<String>,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<(), Box<dyn Error>> {
     let config = read_config();
 
-    let (_, logents_coll) = setup_db(&config).await?;
+    let (hostdata_coll, logents_coll) = setup_db(&config).await?;
     let start_utc: Logdate = start.parse().unwrap();
     let end_utc: Logdate = end.parse().unwrap();
     println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);
     query::find_yesterday3(logents_coll, start_utc, end_utc).await?;
+    let hd = get_hostdata("65.49.1.106", hostdata_coll).await?;
+    println!("hostdata: {:?}", hd);
     Ok(())
 }
 
