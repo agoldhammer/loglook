@@ -33,14 +33,12 @@ impl Geodata {
 
 impl fmt::Display for Geodata {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // write!(f, "IP: {}\n", self.ip).unwrap();
         writeln!(
             f,
             "Loc: {}, {}, {}",
             self.city, self.state_prov, self.country_name
-        )
-        .unwrap();
-        writeln!(f, "ISP: {}", self.isp).unwrap();
+        )?;
+        writeln!(f, "ISP: {}", self.isp)?;
         writeln!(f, "Org: {}", self.organization)
     }
 }

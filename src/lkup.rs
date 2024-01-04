@@ -26,7 +26,6 @@ impl RevLookupData {
 
 impl fmt::Display for RevLookupData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // write!(f, "ip: {}: ", self.ip_addr).unwrap();
         self.ptr_records
             .iter()
             .try_for_each(|record| write!(f, "{}: {}", style("host").red(), style(record).green()))

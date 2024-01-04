@@ -53,10 +53,9 @@ impl fmt::Display for HostData {
             "{}: {}",
             style("IP").bold().red(),
             style(&self.ip).green()
-        )
-        .unwrap();
+        )?;
 
-        write!(f, "{}", self.geodata).unwrap();
+        write!(f, "{}", self.geodata)?;
         self.ptr_records.iter().try_for_each(|record| {
             writeln!(f, "{}: {}", style("host").red(), style(record).green())
         })
@@ -334,8 +333,8 @@ pub async fn search(
     let config = read_config();
 
     let (hostdata_coll, logents_coll) = setup_db(&config).await?;
-    let start_utc: Logdate = start.parse().unwrap();
-    let end_utc: Logdate = end.parse().unwrap();
+    let start_utc: Logdate = start.parse()?;
+    let end_utc: Logdate = end.parse()?;
     println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);
     let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, start_utc, end_utc).await?;
     println!("ips in dr {:?}", ips_in_daterange);
