@@ -19,7 +19,7 @@ async fn get_unique_ips_in_daterange(
     coll: Collection<LogEntry>,
     start_utc: Logdate,
     end_utc: Logdate,
-) -> Result<Cursor<Document>, mongodb::error::Error> {
+) -> anyhow::Result<Cursor<Document>, mongodb::error::Error> {
     // let ct_start: chrono::DateTime<chrono::Utc> = "2023-12-30T16:00:00Z".parse().unwrap();
     // let ct_end: chrono::DateTime<chrono::Utc> = "2023-12-30T20:00:00Z".parse().unwrap();
     let s: bson::DateTime = start_utc.into();

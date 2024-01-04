@@ -48,36 +48,7 @@ enum Command {
         #[clap(long, short)]
         org: Option<String>,
     },
-    // / Search for data by IP address
-    // FindIp(FindIpArgs),
-    // ...other commands (can #[clap(flatten)] other enum variants here)
 }
-
-#[derive(Debug, Args)]
-struct FindIpArgs {
-    /// IP address to search for
-    ip: String,
-    // a list of other write args
-}
-
-// #[derive(Debug, Args)]
-// struct GlobalOpts {
-//     /// Color
-//     #[clap(long, arg_enum, global = true, default_value_t = Color::Auto)]
-//     color: Color,
-
-//     /// Verbosity level (can be specified multiple times)
-//     #[clap(long, short, global = true, parse(from_occurrences))]
-//     verbose: usize,
-//     //... other global options
-// }
-
-// #[derive(Clone, Debug, ArgEnum)]
-// enum Color {
-//     Always,
-//     Auto,
-//     Never,
-// }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() {
