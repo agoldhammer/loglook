@@ -318,7 +318,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 // given an ip, lookup hostdata
 pub async fn get_hostdata(ip: &str, hd_coll: HostDataColl) -> anyhow::Result<HostData> {
     let maybe_hd = hd_coll.find_one(doc! {"ip": ip}, None).await?;
-    println!("{:?}", maybe_hd);
     match maybe_hd {
         Some(hd) => Ok(hd),
         None => Err(anyhow!("ip not found")),
