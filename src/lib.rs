@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use chrono;
 use console::style;
+use futures::stream::StreamExt;
 use mongodb::bson::doc;
 use mongodb::options::IndexOptions;
 use std::collections::{HashMap, HashSet};
@@ -337,10 +338,17 @@ pub async fn search(
     let end_utc: Logdate = end.parse()?;
     println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);
     let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, start_utc, end_utc).await?;
-    println!("ips in dr {:?}", ips_in_daterange);
+    // println!("ips in dr {:?}", ips_in_daterange);
     for ip in ips_in_daterange.iter() {
         let hd = get_hostdata(ip, &hostdata_coll).await?;
         println!("{}", hd);
+        let mut curs =
+            query::find_logentries_by_ip_in_daterange(&logents_coll, ip, start_utc, end_utc).await;
+
+        while let Some(le) = curs.next().await {
+            let lex = le?;
+            println!("{}", lex);
+        }
     }
     Ok(())
 }

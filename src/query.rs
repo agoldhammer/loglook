@@ -9,6 +9,19 @@ use mongodb::{Collection, Cursor};
 
 type IpsInDaterange = Vec<String>;
 
+pub async fn find_logentries_by_ip_in_daterange(
+    logents_coll: &Collection<LogEntry>,
+    ip: &str,
+    start_utc: Logdate,
+    end_utc: Logdate,
+) -> Cursor<LogEntry> {
+    let s: bson::DateTime = start_utc.into();
+    let e: bson::DateTime = end_utc.into();
+    let filter = doc! {"ip" : ip, "time": {"$gte": s, "$lte": e}};
+    let cursor = logents_coll.find(filter, None).await.unwrap();
+    cursor
+}
+
 async fn get_unique_ips_in_daterange(
     coll: &Collection<LogEntry>,
     start_utc: Logdate,
