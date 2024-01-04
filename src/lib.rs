@@ -183,10 +183,6 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // * setup database
     let (host_data_coll, logents_coll) = setup_db(&config).await?;
 
-    // ! for testing query
-    // query::find_yesterday3(logents_coll.clone()).await;
-    // ! end test
-
     // * input stage
     let lines = read_lines(path)?;
     // * process each logline and collect parsed lines into Vec<LogEntry>
