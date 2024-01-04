@@ -1,18 +1,16 @@
+use super::Logdate;
 use crate::log_entries::LogEntry;
 use bson;
-use std::error::Error;
-// use bson::from_document;
 use bson::Bson;
 use bson::Document;
-// use chrono;
-// use serde::Deserialize;
-// use chrono::prelude::*;
-use super::Logdate;
 use mongodb::bson::doc;
+use std::error::Error;
 // use mongodb::error::Error;
+// use anyhow::anyhow;
 #[allow(unused_imports)]
 use futures::stream::StreamExt;
 use mongodb::{Collection, Cursor};
+
 type IpsInDaterange = Vec<String>;
 
 async fn get_unique_ips_in_daterange(
