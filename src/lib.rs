@@ -338,7 +338,9 @@ pub async fn search(
     let start_utc: Logdate = start.parse().unwrap();
     let end_utc: Logdate = end.parse().unwrap();
     println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);
-    query::find_yesterday3(logents_coll, start_utc, end_utc).await?;
+    let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, start_utc, end_utc).await?;
+    println!("ips in dr {:?}", ips_in_daterange);
+
     let hd = get_hostdata("65.49.1.106", hostdata_coll).await?;
     println!("hostdata: {}", hd);
     Ok(())
