@@ -27,3 +27,7 @@
 ## cli
 
 - options -D daemon-mode -o onlyheaders subcommand [time -s date -e date -d # -h #] [ip string] [org string] [country string] (-f) FILE(w default)
+
+## Rust error handling with anyhow
+
+- [errors](https://antoinerr.github.io/blog-website/2023/01/28/rust-anyhow.html)
