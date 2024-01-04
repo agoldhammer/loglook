@@ -377,8 +377,8 @@ mod tests {
     //     let config = read_config();
     //     let (hd_coll, _) = aw!(setup_db(&config)).unwrap();
     //     // 78.153.140.219
-    //     let query = doc! {"geodata": {"ip": "78.153.140.219"}};
+    //     let query = doc! {"geodata": {"ip": "192.241.207.94"}};
     //     let hd = aw!(hd_coll.find_one(query, None)).unwrap();
-    //     // assert_eq!(Some(hd), { "ip" });
+    //     assert!(hd.is_some());
     // }
 }
