@@ -13,13 +13,15 @@ async fn get_unique_ips_in_daterange(
     coll: &Collection<LogEntry>,
     start_utc: Logdate,
     end_utc: Logdate,
-) -> anyhow::Result<Cursor<Document>, mongodb::error::Error> {
+) -> anyhow::Result<Cursor<Document>> {
     let s: bson::DateTime = start_utc.into();
     let e: bson::DateTime = end_utc.into();
     let time_filter = doc! {"$match": {"time": {"$gte": s, "$lt": e}}};
     let grouper = doc! {"$group": {"_id": "$ip"}};
     let pipeline = vec![time_filter, grouper];
-    coll.aggregate(pipeline, None).await
+    coll.aggregate(pipeline, None)
+        .await
+        .map_err(anyhow::Error::msg)
 }
 
 pub async fn find_ips_in_daterange(
