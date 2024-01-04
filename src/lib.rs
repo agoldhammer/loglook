@@ -315,7 +315,7 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
 }
 
 // given an ip, lookup hostdata
-pub async fn get_hostdata(ip: &str, hd_coll: HostDataColl) -> anyhow::Result<HostData> {
+pub async fn get_hostdata(ip: &str, hd_coll: &HostDataColl) -> anyhow::Result<HostData> {
     let maybe_hd = hd_coll.find_one(doc! {"ip": ip}, None).await?;
     match maybe_hd {
         Some(hd) => Ok(hd),
@@ -338,9 +338,10 @@ pub async fn search(
     println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);
     let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, start_utc, end_utc).await?;
     println!("ips in dr {:?}", ips_in_daterange);
-
-    let hd = get_hostdata("65.49.1.106", hostdata_coll).await?;
-    println!("hostdata: {}", hd);
+    for ip in ips_in_daterange.iter() {
+        let hd = get_hostdata(ip, &hostdata_coll).await?;
+        println!("{}", hd);
+    }
     Ok(())
 }
 
