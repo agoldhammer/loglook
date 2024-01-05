@@ -361,8 +361,8 @@ mod tests {
     use super::*;
     // use crate::read_config;
     // use mongodb::bson::{doc, to_document};
-    // use tokio_test::assert_ok;
-    // use tokio_test::block_on;
+    use tokio_test::assert_ok;
+    use tokio_test::block_on;
 
     macro_rules! aw {
         ($e:expr) => {
@@ -376,17 +376,12 @@ mod tests {
         assert!(db_uri.contains("27017"));
     }
 
-    // #[test]
-    // fn item_in_db() {
-    //     let config = read_config();
-    //     eprintln!("{}", config.db_uri);
-    //     let res = aw!(setup_db(&config.db_uri));
-    //     eprintln!("Got db Ok {}", res.is_ok());
-    //     let (hd_coll, _) = res.unwrap();
-    //     // 78.153.140.219
-    //     let query = doc! {"ip": "192.241.207.94"};
-    //     let hd = aw!(hd_coll.find_one(query, None)).unwrap();
-    //     eprintln!("hd is there {}", hd.is_some());
-    //     assert!(hd.is_some());
-    // }
+    #[test]
+    fn test_search() {
+        let start = "2024-12-29T00:00:00Z";
+        let end = "2024-12-29T12:00:00Z";
+        let void_arg = None as Option<String>;
+        let res = aw!(search(start, end, &void_arg, &void_arg, &void_arg));
+        tokio_test::assert_ok!(res)
+    }
 }
