@@ -362,7 +362,7 @@ mod tests {
     // use crate::read_config;
     // use mongodb::bson::{doc, to_document};
     // use tokio_test::assert_ok;
-    use tokio_test::block_on;
+    // use tokio_test::block_on;
 
     macro_rules! aw {
         ($e:expr) => {
