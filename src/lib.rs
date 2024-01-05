@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use console::style;
 use futures::stream::StreamExt;
 use mongodb::bson::doc;
@@ -120,7 +120,7 @@ fn progress_bar_setup(n_pb_items: u64) -> (ProgressBar, ProgressBar) {
     (pb_rdns, pb_geo)
 }
 
-async fn setup_db(config: &Config) -> Result<(HostDataColl, LogEntryColl), Box<dyn Error>> {
+async fn setup_db(config: &Config) -> anyhow::Result<(HostDataColl, LogEntryColl)> {
     let client = Client::with_uri_str(&config.db_uri).await?;
     // TODO: should take dbname from config
     let db = client.database("loglook");
@@ -164,7 +164,7 @@ async fn ip_in_hdcoll(ip: String, host_data_coll: HostDataColl) -> anyhow::Resul
     Ok(retval)
 }
 
-pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
+pub async fn run(path: &PathBuf) -> anyhow::Result<()> {
     /* Strategy: Parse loglines into LogEntries
     Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
     Do geo lookup to generate Geodata, collect in map with ip as key
@@ -183,7 +183,11 @@ pub async fn run(path: &PathBuf) -> Result<(), Box<dyn Error>> {
     let (host_data_coll, logents_coll) = setup_db(&config).await?;
 
     // * input stage
-    let lines = read_lines(path)?;
+    let file = read_lines(path);
+    let lines = match file {
+        Ok(file) => file,
+        Err(e) => bail!("Error reading log file: {e}"),
+    };
     // * process each logline and collect parsed lines into Vec<LogEntry>
     let logentries = make_logentries(lines);
     counts.n_logents = logentries.len();
@@ -329,7 +333,7 @@ pub async fn search(
     ip: &Option<String>,
     country: &Option<String>,
     org: &Option<String>,
-) -> anyhow::Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let config = read_config();
 
     let (hostdata_coll, logents_coll) = setup_db(&config).await?;
