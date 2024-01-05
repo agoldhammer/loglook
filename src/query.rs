@@ -1,3 +1,4 @@
+use super::HostData;
 use super::Logdate;
 use crate::log_entries::LogEntry;
 use bson;
@@ -8,6 +9,28 @@ use mongodb::bson::doc;
 use mongodb::{Collection, Cursor};
 
 type IpsInDaterange = Vec<String>;
+
+fn time_str_to_bson(
+    start_str: &str,
+    end_str: &str,
+) -> anyhow::Result<(bson::DateTime, bson::DateTime)> {
+    let start_utc: Logdate = start_str.parse()?;
+    let end_utc: Logdate = end_str.parse()?;
+    let s: bson::DateTime = start_utc.into();
+    let e: bson::DateTime = end_utc.into();
+    Ok((s, e))
+}
+
+pub async fn find_hostdata_by_time_and_country(
+    coll: Collection<HostData>,
+    start_str: &str,
+    end_str: &str,
+    country: &str,
+) -> anyhow::Result<Cursor<HostData>> {
+    let (start, end) = time_str_to_bson(start_str, end_str)?;
+    let filter = doc! {"time": {"$gte": start, "$lte": end}, "country": country};
+    Ok(coll.find(filter, None).await?)
+}
 
 pub async fn find_logentries_by_ip_in_daterange(
     logents_coll: &Collection<LogEntry>,
