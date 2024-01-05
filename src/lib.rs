@@ -378,10 +378,10 @@ mod tests {
 
     #[test]
     fn test_search() {
-        let start = "2024-12-29T00:00:00Z";
-        let end = "2024-12-29T12:00:00Z";
+        let start = "2023-12-29T11:45:00Z";
+        let end = "2023-12-29T12:00:00Z";
         let void_arg = None as Option<String>;
         let res = aw!(search(start, end, &void_arg, &void_arg, &void_arg));
-        tokio_test::assert_ok!(res)
+        tokio_test::assert_ok!(res);
     }
 }
