@@ -358,16 +358,16 @@ pub async fn search(
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
     use crate::read_config;
     // use mongodb::bson::{doc, to_document};
     // use tokio_test::assert_ok;
 
-    // macro_rules! aw {
-    //     ($e:expr) => {
-    //         tokio_test::block_on($e)
-    //     };
-    // }
+    macro_rules! aw {
+        ($e:expr) => {
+            tokio_test::block_on($e)
+        };
+    }
 
     #[test]
     fn config_read_rest() {
@@ -375,13 +375,13 @@ mod tests {
         assert!(db_uri.contains("27017"));
     }
 
-    // #[test]
-    // fn item_in_db() {
-    //     let config = read_config();
-    //     let (hd_coll, _) = aw!(setup_db(&config)).unwrap();
-    //     // 78.153.140.219
-    //     let query = doc! {"geodata": {"ip": "192.241.207.94"}};
-    //     let hd = aw!(hd_coll.find_one(query, None)).unwrap();
-    //     assert!(hd.is_some());
-    // }
+    #[test]
+    fn item_in_db() {
+        let config = read_config();
+        let (hd_coll, _) = aw!(setup_db(&config)).unwrap();
+        // 78.153.140.219
+        let query = doc! {"ip": "192.241.207.94"};
+        let hd = aw!(hd_coll.find_one(query, None));
+        assert!(hd.unwrap().is_some());
+    }
 }
