@@ -371,7 +371,7 @@ pub async fn search(
         println!("{}", hd);
         let mut curs =
             query::find_logentries_by_ip_in_daterange(&logents_coll, ip, start_bson, end_bson)
-                .await;
+                .await?;
 
         while let Some(le) = curs.next().await {
             let lex = le?;

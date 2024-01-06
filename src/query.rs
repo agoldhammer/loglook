@@ -39,9 +39,12 @@ pub async fn find_logentries_by_ip_in_daterange(
     ip: &str,
     start_b: DateTime,
     end_b: DateTime,
-) -> Cursor<LogEntry> {
+) -> anyhow::Result<Cursor<LogEntry>> {
     let filter = doc! {"ip" : ip, "time": {"$gte": start_b, "$lte": end_b}};
-    logents_coll.find(filter, None).await.unwrap()
+    logents_coll
+        .find(filter, None)
+        .await
+        .map_err(anyhow::Error::msg)
 }
 
 async fn get_unique_ips_in_daterange(
