@@ -363,16 +363,15 @@ pub async fn search(
         };
         // TODO do something with cursor
     }
-    let start_utc: Logdate = start.parse()?;
-    let end_utc: Logdate = end.parse()?;
-    println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);
-    let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, start_utc, end_utc).await?;
-    // println!("ips in dr {:?}", ips_in_daterange);
+    let (start_bson, end_bson) = query::time_str_to_bson(start, end)?;
+    println!("{start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
+    let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, start, end).await?;
     for ip in ips_in_daterange.iter() {
         let hd = get_hostdata(ip, &hostdata_coll).await?;
         println!("{}", hd);
         let mut curs =
-            query::find_logentries_by_ip_in_daterange(&logents_coll, ip, start_utc, end_utc).await;
+            query::find_logentries_by_ip_in_daterange(&logents_coll, ip, start_bson, end_bson)
+                .await;
 
         while let Some(le) = curs.next().await {
             let lex = le?;

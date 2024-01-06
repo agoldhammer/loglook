@@ -2,15 +2,15 @@ use super::HostData;
 use super::Logdate;
 use crate::log_entries::LogEntry;
 use bson;
-use bson::Bson;
 use bson::Document;
+use bson::{Bson, DateTime};
 use futures::stream::StreamExt;
 use mongodb::bson::doc;
 use mongodb::{Collection, Cursor};
 
 type IpsInDaterange = Vec<String>;
 
-fn time_str_to_bson(
+pub fn time_str_to_bson(
     start_str: &str,
     end_str: &str,
 ) -> anyhow::Result<(bson::DateTime, bson::DateTime)> {
@@ -36,23 +36,19 @@ pub async fn find_hostdata_by_time_and_country(
 pub async fn find_logentries_by_ip_in_daterange(
     logents_coll: &Collection<LogEntry>,
     ip: &str,
-    start_utc: Logdate,
-    end_utc: Logdate,
+    start_b: DateTime,
+    end_b: DateTime,
 ) -> Cursor<LogEntry> {
-    let s: bson::DateTime = start_utc.into();
-    let e: bson::DateTime = end_utc.into();
-    let filter = doc! {"ip" : ip, "time": {"$gte": s, "$lte": e}};
+    let filter = doc! {"ip" : ip, "time": {"$gte": start_b, "$lte": end_b}};
     logents_coll.find(filter, None).await.unwrap()
 }
 
 async fn get_unique_ips_in_daterange(
     coll: &Collection<LogEntry>,
-    start_utc: Logdate,
-    end_utc: Logdate,
+    start_b: DateTime,
+    end_b: DateTime,
 ) -> anyhow::Result<Cursor<Document>> {
-    let s: bson::DateTime = start_utc.into();
-    let e: bson::DateTime = end_utc.into();
-    let time_filter = doc! {"$match": {"time": {"$gte": s, "$lt": e}}};
+    let time_filter = doc! {"$match": {"time": {"$gte": start_b, "$lt": end_b}}};
     let grouper = doc! {"$group": {"_id": "$ip"}};
     let pipeline = vec![time_filter, grouper];
     coll.aggregate(pipeline, None)
@@ -62,10 +58,11 @@ async fn get_unique_ips_in_daterange(
 
 pub async fn find_ips_in_daterange(
     coll: &Collection<LogEntry>,
-    start_utc: Logdate,
-    end_utc: Logdate,
+    start_str: &str,
+    end_str: &str,
 ) -> anyhow::Result<IpsInDaterange> {
-    let mut cursor = get_unique_ips_in_daterange(coll, start_utc, end_utc).await?;
+    let (start_b, end_b) = time_str_to_bson(start_str, end_str)?;
+    let mut cursor = get_unique_ips_in_daterange(coll, start_b, end_b).await?;
     let mut ips_in_daterange: IpsInDaterange = vec![];
     while let Some(doc) = cursor.next().await {
         let ndoc = doc?;
