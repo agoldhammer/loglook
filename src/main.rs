@@ -56,7 +56,7 @@ async fn main() {
     // let args = cli.command
     let result = match &cli.command {
         #[allow(unused_variables)]
-        Command::Read { daemon, path } => loglook::run(path).await,
+        Command::Read { daemon, path } => loglook::run(daemon, path).await,
         Command::Search {
             start,
             end,

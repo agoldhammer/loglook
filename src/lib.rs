@@ -173,7 +173,7 @@ async fn ip_in_hdcoll(ip: String, host_data_coll: HostDataColl) -> anyhow::Resul
     Ok(retval)
 }
 
-pub async fn run(path: &PathBuf) -> anyhow::Result<()> {
+pub async fn run(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
     /* Strategy: Parse loglines into LogEntries
     Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
     Do geo lookup to generate Geodata, collect in map with ip as key
@@ -276,14 +276,18 @@ pub async fn run(path: &PathBuf) -> anyhow::Result<()> {
     pb_geo.finish();
 
     let mut ip_to_hostdata_map = HashMap::new();
-    println!("\nOutput");
+    if !daemon {
+        println!("\nOutput");
+    }
     for (ip, geodata) in ips_to_geodata_map {
-        println!(
-            "{}: {}",
-            style("IP").bold().red(),
-            style(&ip.clone()).green()
-        );
-        print!("{geodata}");
+        if !daemon {
+            println!(
+                "{}: {}",
+                style("IP").bold().red(),
+                style(&ip.clone()).green()
+            );
+            print!("{geodata}");
+        }
         let rdns = ips_to_rdns_map.get(&ip).unwrap();
         let hostdata = HostData {
             ip: ip.to_string(),
@@ -291,16 +295,20 @@ pub async fn run(path: &PathBuf) -> anyhow::Result<()> {
             ptr_records: rdns.ptr_records.clone(),
         };
         ip_to_hostdata_map.insert(ip.clone(), hostdata);
-        println!("{rdns}\n");
-        let les = logentries.iter().filter(|le| le.ip == ip);
-        for le in les {
-            println!("{le}");
+        if !daemon {
+            println!("{rdns}\n");
+            let les = logentries.iter().filter(|le| le.ip == ip);
+            for le in les {
+                println!("{le}");
+            }
         }
     }
 
-    println!("Hostdata");
-    for hd in ip_to_hostdata_map.values() {
-        println!("{hd}");
+    if !daemon {
+        println!("Hostdata");
+        for hd in ip_to_hostdata_map.values() {
+            println!("{hd}");
+        }
     }
 
     let docs = ip_to_hostdata_map.values();
