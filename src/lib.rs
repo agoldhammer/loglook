@@ -133,14 +133,14 @@ async fn setup_db(db_uri: &str) -> anyhow::Result<(HostDataColl, LogEntryColl)> 
     #[allow(unused_variables)]
     let hd_index = host_data_coll.create_index(hd_index_model, None).await?;
     // ! The index below does not work
-    // let hd_country_index_model = IndexModel::builder()
-    //     .keys(doc! {"geodata": {"country": 1}})
-    //     .options(None)
-    //     .build();
-    // #[allow(unused_variables)]
-    // let hd_country_index = host_data_coll
-    //     .create_index(hd_country_index_model, None)
-    //     .await?;
+    let hd_country_index_model = IndexModel::builder()
+        .keys(doc! {"geodata.country": 1})
+        .options(None)
+        .build();
+    #[allow(unused_variables)]
+    let hd_country_index = host_data_coll
+        .create_index(hd_country_index_model, None)
+        .await?;
     // * Indices on LogEntry collection
     // * Need several; first is compound on ip and time
     let logents_coll: LogEntryColl = db.collection("logentries");
