@@ -21,14 +21,15 @@ fn time_str_to_bson(
     Ok((s, e))
 }
 
+#[allow(unused_variables)]
 pub async fn find_hostdata_by_time_and_country(
-    coll: Collection<HostData>,
+    coll: &Collection<HostData>,
     start_str: &str,
     end_str: &str,
     country: &str,
 ) -> anyhow::Result<Cursor<HostData>> {
     let (start, end) = time_str_to_bson(start_str, end_str)?;
-    let filter = doc! {"time": {"$gte": start, "$lte": end}, "country": country};
+    let filter = doc! {"geodata.country_name": country};
     Ok(coll.find(filter, None).await?)
 }
 

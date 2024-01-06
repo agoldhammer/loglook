@@ -1,6 +1,6 @@
 use anyhow::{anyhow, bail};
 use console::style;
-use futures::stream::StreamExt;
+use futures::{StreamExt, TryStreamExt};
 use mongodb::bson::doc;
 use mongodb::options::IndexOptions;
 use std::collections::{HashMap, HashSet};
@@ -346,6 +346,23 @@ pub async fn search(
     let config = read_config();
 
     let (hostdata_coll, logents_coll) = setup_db(&config.db_uri).await?;
+    if country.is_some() {
+        println!("got a country {:?}", country);
+        match (ip, country, org) {
+            (None, Some(country), None) => {
+                let curs =
+                    query::find_hostdata_by_time_and_country(&hostdata_coll, start, end, country)
+                        .await?;
+                let v: Vec<HostData> = curs.try_collect().await?;
+                println!("v len: {}", v.len());
+                // for hd in curs {
+                //     println!("hd=> {}", hd);
+                // }
+            }
+            _ => (),
+        };
+        // TODO do something with cursor
+    }
     let start_utc: Logdate = start.parse()?;
     let end_utc: Logdate = end.parse()?;
     println!("{start_utc}-{end_utc}--{:?}--{:?}--{:?}", ip, country, org);

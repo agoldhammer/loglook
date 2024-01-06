@@ -11,11 +11,11 @@ use tokio::sync::mpsc;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Geodata {
     pub ip: String,
-    country_name: String,
-    state_prov: String,
-    city: String,
-    isp: String,
-    organization: String,
+    pub country_name: String,
+    pub state_prov: String,
+    pub city: String,
+    pub isp: String,
+    pub organization: String,
 }
 
 impl Geodata {
