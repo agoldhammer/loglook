@@ -6,6 +6,7 @@ use bson::Document;
 use bson::{Bson, DateTime};
 use futures::stream::StreamExt;
 use mongodb::bson::doc;
+// use mongodb::options::FindOptions;
 use mongodb::{Collection, Cursor};
 
 type IpsInDaterange = Vec<String>;
@@ -50,7 +51,8 @@ async fn get_unique_ips_in_daterange(
 ) -> anyhow::Result<Cursor<Document>> {
     let time_filter = doc! {"$match": {"time": {"$gte": start_b, "$lt": end_b}}};
     let grouper = doc! {"$group": {"_id": "$ip"}};
-    let pipeline = vec![time_filter, grouper];
+    let sorter = doc! {"$sort": {"_id": 1}};
+    let pipeline = vec![time_filter, grouper, sorter];
     coll.aggregate(pipeline, None)
         .await
         .map_err(anyhow::Error::msg)
