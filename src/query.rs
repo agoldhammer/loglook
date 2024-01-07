@@ -22,17 +22,87 @@ pub fn time_str_to_bson(
     Ok((s, e))
 }
 
+#[allow(dead_code)]
 #[allow(unused_variables)]
-pub async fn find_hostdata_by_time_and_country(
-    coll: &Collection<HostData>,
+pub async fn find_ips_in_daterange_by_country(
+    // hdcoll: &Collection<HostData>,
+    lecoll: &Collection<LogEntry>,
     start_str: &str,
     end_str: &str,
-    country: &str,
-) -> anyhow::Result<Cursor<HostData>> {
-    let (start, end) = time_str_to_bson(start_str, end_str)?;
-    let filter = doc! {"geodata.country_name": country};
-    Ok(coll.find(filter, None).await?)
+) -> anyhow::Result<()> {
+    let (s, e) = time_str_to_bson(start_str, end_str)?;
+
+    let pipeline = [
+        doc! {
+            "$match": doc! {
+                "$and": [
+                    doc! {
+                        "time": doc! {
+                            "$gte": s
+                        }
+                    },
+                    doc! {
+                        "time": doc! {
+                            "$lte": e
+                        }
+                    }
+                ]
+            }
+        },
+        doc! {
+            "$lookup": doc! {
+                "as": "hostdata",
+                "from": "hostdata",
+                "foreignField": "ip",
+                "localField": "ip"
+            }
+        },
+        doc! {
+            "$project": doc! {
+                "ip": 1,
+                "hostdata.geodata.country_name": 1
+            }
+        },
+        doc! {
+            "$sort": doc! {
+                "hostdata.geodata.country_name": 1
+            }
+        },
+        doc! {
+            "$set": doc! {
+                "country": "$hostdata.geodata.country_name"
+            }
+        },
+        doc! {
+            "$project": doc! {
+                "hostdata": 0
+            }
+        },
+        doc! {
+            "$unwind": doc! {
+                "path": "$country",
+                "preserveNullAndEmptyArrays": false
+            }
+        },
+    ];
+    let mut curs = lecoll.aggregate(pipeline, None).await?;
+    while let Some(doc) = curs.next().await {
+        println!("newfn: {:?}", doc);
+    }
+    Ok(())
 }
+
+// #[allow(unused_variables)]
+// pub async fn find_hostdata_by_time_and_country(
+//     coll: &Collection<HostData>,
+//     start_str: &str,
+//     end_str: &str,
+//     country: &str,
+// ) -> anyhow::Result<Cursor<HostData>> {
+//     // let (start, end) = time_str_to_bson(start_str, end_str)?;
+//     let filter = doc! {"geodata.country_name": country};
+//     Ok(coll.find(filter, None).await?)
+// }
 
 pub async fn find_logentries_by_ip_in_daterange(
     logents_coll: &Collection<LogEntry>,

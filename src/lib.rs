@@ -358,14 +358,13 @@ pub async fn search(
         println!("got a country {:?}", country);
         match (ip, country, org) {
             (None, Some(country), None) => {
-                let curs =
-                    query::find_hostdata_by_time_and_country(&hostdata_coll, start, end, country)
-                        .await?;
-                let v: Vec<HostData> = curs.try_collect().await?;
-                println!("v len: {}", v.len());
-                // for hd in curs {
-                //     println!("hd=> {}", hd);
-                // }
+                let _curs =
+                    query::find_ips_in_daterange_by_country(&logents_coll, start, end).await?;
+                // let curs =
+                //     query::find_hostdata_by_time_and_country(&hostdata_coll, start, end, country)
+                //         .await?;
+                // let v: Vec<HostData> = curs.try_collect().await?;
+                // println!("v len: {}", v.len());
             }
             _ => (),
         };
