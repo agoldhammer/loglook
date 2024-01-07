@@ -1,4 +1,4 @@
-use super::HostData;
+// use super::HostData;
 use super::Logdate;
 use crate::log_entries::LogEntry;
 use bson;

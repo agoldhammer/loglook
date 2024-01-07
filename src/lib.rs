@@ -1,5 +1,6 @@
 use anyhow::{anyhow, bail};
 use console::style;
+#[allow(unused_imports)]
 use futures::{StreamExt, TryStreamExt};
 use mongodb::bson::doc;
 use mongodb::options::IndexOptions;
@@ -344,6 +345,29 @@ pub async fn get_hostdata(ip: &str, hd_coll: &HostDataColl) -> anyhow::Result<Ho
     }
 }
 
+// TODO: this has to be fixed to show all ips in daterange
+#[allow(dead_code)]
+async fn output_ips(
+    // logents_coll: &Collection<LogEntry>,
+    hostdata_coll: &Collection<HostData>,
+    ips: Vec<String>,
+) -> anyhow::Result<()> {
+    // let ips_in_daterange = query::find_ips_in_daterange(logents_coll, start, end).await?;
+    for ip in ips.iter() {
+        let hd = get_hostdata(ip, hostdata_coll).await?;
+        println!("{}", hd);
+        println!("{}", ip);
+        // let mut curs =
+        //     query::find_logentries_by_ip_in_daterange(logents_coll, ip, start_bson, end_bson)
+        //         .await?;
+
+        // while let Some(le) = curs.next().await {
+        //     let lex = le?;
+        //     println!("{}", lex);
+        // }
+    }
+    Ok(())
+}
 pub async fn search(
     start: &str,
     end: &str,
@@ -357,7 +381,7 @@ pub async fn search(
     if country.is_some() {
         println!("got a country {:?}", country);
         match (ip, country, org) {
-            (None, Some(country), None) => {
+            (None, Some(_country), None) => {
                 let _curs =
                     query::find_ips_in_daterange_by_country(&logents_coll, start, end).await?;
                 // let curs =
@@ -373,6 +397,9 @@ pub async fn search(
     let (start_bson, end_bson) = query::time_str_to_bson(start, end)?;
     println!("{start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
     let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, start, end).await?;
+    // TODO fix and uncomment below
+    // output_ips(&logents_coll, &hostdata_coll, ips_in_daterange);
+    // TODO block below should be replaced
     for ip in ips_in_daterange.iter() {
         let hd = get_hostdata(ip, &hostdata_coll).await?;
         println!("{}", hd);
