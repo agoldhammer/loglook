@@ -377,13 +377,18 @@ pub async fn search(
 ) -> anyhow::Result<()> {
     let config = read_config();
 
+    // ! new stuff
+    let date_range = query::time_str_to_daterange(start, end)?;
+
+    // !
+
     let (hostdata_coll, logents_coll) = setup_db(&config.db_uri).await?;
     if country.is_some() {
         println!("got a country {:?}", country);
         match (ip, country, org) {
             (None, Some(_country), None) => {
                 let _curs =
-                    query::find_ips_in_daterange_by_country(&logents_coll, start, end).await?;
+                    query::find_ips_in_daterange_by_country(&logents_coll, &date_range).await?;
                 // let curs =
                 //     query::find_hostdata_by_time_and_country(&hostdata_coll, start, end, country)
                 //         .await?;
@@ -394,9 +399,8 @@ pub async fn search(
         };
         // TODO do something with cursor
     }
-    let (start_bson, end_bson) = query::time_str_to_bson(start, end)?;
     println!("{start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
-    let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, start, end).await?;
+    let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, &date_range).await?;
     // TODO fix and uncomment below
     // output_ips(&logents_coll, &hostdata_coll, ips_in_daterange);
     // TODO block below should be replaced
@@ -404,8 +408,7 @@ pub async fn search(
         let hd = get_hostdata(ip, &hostdata_coll).await?;
         println!("{}", hd);
         let mut curs =
-            query::find_logentries_by_ip_in_daterange(&logents_coll, ip, start_bson, end_bson)
-                .await?;
+            query::find_logentries_by_ip_in_daterange(&logents_coll, ip, &date_range).await?;
 
         while let Some(le) = curs.next().await {
             let lex = le?;

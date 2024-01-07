@@ -11,6 +11,12 @@ use mongodb::{Collection, Cursor};
 
 type IpsInDaterange = Vec<String>;
 
+#[derive(Debug)]
+pub struct DateRange {
+    pub start: DateTime,
+    pub end: DateTime,
+}
+
 pub fn time_str_to_bson(
     start_str: &str,
     end_str: &str,
@@ -22,28 +28,30 @@ pub fn time_str_to_bson(
     Ok((s, e))
 }
 
+pub fn time_str_to_daterange(start_str: &str, end_str: &str) -> anyhow::Result<DateRange> {
+    let (s, e) = time_str_to_bson(start_str, end_str)?;
+    Ok(DateRange { start: s, end: e })
+}
+
 #[allow(dead_code)]
 #[allow(unused_variables)]
 pub async fn find_ips_in_daterange_by_country(
     // hdcoll: &Collection<HostData>,
     lecoll: &Collection<LogEntry>,
-    start_str: &str,
-    end_str: &str,
+    date_range: &DateRange,
 ) -> anyhow::Result<()> {
-    let (s, e) = time_str_to_bson(start_str, end_str)?;
-
     let pipeline = [
         doc! {
             "$match": doc! {
                 "$and": [
                     doc! {
                         "time": doc! {
-                            "$gte": s
+                            "$gte": date_range.start,
                         }
                     },
                     doc! {
                         "time": doc! {
-                            "$lte": e
+                            "$lte": date_range.end,
                         }
                     }
                 ]
@@ -107,10 +115,9 @@ pub async fn find_ips_in_daterange_by_country(
 pub async fn find_logentries_by_ip_in_daterange(
     logents_coll: &Collection<LogEntry>,
     ip: &str,
-    start_b: DateTime,
-    end_b: DateTime,
+    date_range: &DateRange,
 ) -> anyhow::Result<Cursor<LogEntry>> {
-    let filter = doc! {"ip" : ip, "time": {"$gte": start_b, "$lte": end_b}};
+    let filter = doc! {"ip" : ip, "time": {"$gte": date_range.start, "$lte": date_range.end}};
     logents_coll
         .find(filter, None)
         .await
@@ -119,10 +126,9 @@ pub async fn find_logentries_by_ip_in_daterange(
 
 async fn get_unique_ips_in_daterange(
     coll: &Collection<LogEntry>,
-    start_b: DateTime,
-    end_b: DateTime,
+    date_range: &DateRange,
 ) -> anyhow::Result<Cursor<Document>> {
-    let time_filter = doc! {"$match": {"time": {"$gte": start_b, "$lt": end_b}}};
+    let time_filter = doc! {"$match": {"time": {"$gte": date_range.start, "$lt": date_range.end}}};
     let grouper = doc! {"$group": {"_id": "$ip"}};
     let sorter = doc! {"$sort": {"_id": 1}};
     let pipeline = vec![time_filter, grouper, sorter];
@@ -133,11 +139,9 @@ async fn get_unique_ips_in_daterange(
 
 pub async fn find_ips_in_daterange(
     coll: &Collection<LogEntry>,
-    start_str: &str,
-    end_str: &str,
+    date_range: &DateRange,
 ) -> anyhow::Result<IpsInDaterange> {
-    let (start_b, end_b) = time_str_to_bson(start_str, end_str)?;
-    let mut cursor = get_unique_ips_in_daterange(coll, start_b, end_b).await?;
+    let mut cursor = get_unique_ips_in_daterange(coll, date_range).await?;
     let mut ips_in_daterange: IpsInDaterange = vec![];
     while let Some(doc) = cursor.next().await {
         let ndoc = doc?;
