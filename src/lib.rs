@@ -377,12 +377,11 @@ pub async fn search(
 ) -> anyhow::Result<()> {
     let config = read_config();
 
-    // ! new stuff
     let date_range = query::time_str_to_daterange(start, end)?;
 
-    // !
-
     let (hostdata_coll, logents_coll) = setup_db(&config.db_uri).await?;
+    // * set up the temporary collection of logentries using the current daterange
+    query::make_current_le_coll(&date_range, &logents_coll).await?;
     if country.is_some() {
         println!("got a country {:?}", country);
         match (ip, country, org) {

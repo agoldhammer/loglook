@@ -156,3 +156,15 @@ pub async fn find_ips_in_daterange(
     }
     Ok(ips_in_daterange)
 }
+
+pub async fn make_current_le_coll(
+    date_range: &DateRange,
+    logentry_coll: &Collection<LogEntry>,
+) -> anyhow::Result<()> {
+    let time_filter = doc! {"$match": {"time": {"$gte": date_range.start, "$lt": date_range.end}}};
+    let out_coll = doc! {"$out": "current_logentries"};
+    let _ = logentry_coll
+        .aggregate(vec![time_filter, out_coll], None)
+        .await?;
+    Ok(())
+}
