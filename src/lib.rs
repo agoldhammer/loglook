@@ -390,6 +390,8 @@ pub async fn search(
     country: &Option<String>,
     org: &Option<String>,
 ) -> anyhow::Result<()> {
+    println!("search: {start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
+
     let config = read_config();
 
     let date_range = query::time_str_to_daterange(start, end)?;
@@ -403,14 +405,27 @@ pub async fn search(
         println!("got a country {:?}", country);
         match (ip, country, org) {
             (None, Some(_country), None) => {
-                query::get_current_ips_by_country(&current_logentries_coll).await?;
+                let country_with_ips_vec =
+                    query::get_current_ips_by_country(&current_logentries_coll).await?;
+                println!("{:?}", country_with_ips_vec);
+                for country_with_ips in country_with_ips_vec {
+                    println!(
+                        "{}: {}\n----------",
+                        style("Country").red(),
+                        style(country_with_ips.country).yellow()
+                    );
+                    output_ips(
+                        &hostdata_coll,
+                        &current_logentries_coll,
+                        country_with_ips.ips,
+                    )
+                    .await?;
+                }
             }
             _ => (),
         };
         // TODO do something with cursor
     } else {
-        // println!("{start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
-
         output_all_current_ips(
             &hostdata_coll,
             &logents_coll,
@@ -419,22 +434,6 @@ pub async fn search(
         )
         .await?;
     }
-
-    // let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, &date_range).await?;
-    // // TODO fix and uncomment below
-    // output_ips(&hostdata_coll, &current_logentries_coll, ips_in_daterange).await?;
-    // // TODO block below should be replaced
-    // for ip in ips_in_daterange.iter() {
-    //     let hd = get_hostdata(ip, &hostdata_coll).await?;
-    //     println!("{}", hd);
-    //     let mut curs =
-    //         query::find_logentries_by_ip_in_daterange(&logents_coll, ip, &date_range).await?;
-
-    //     while let Some(le) = curs.next().await {
-    //         let lex = le?;
-    //         println!("{}", lex);
-    //     }
-    // }
     Ok(())
 }
 

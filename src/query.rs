@@ -180,7 +180,7 @@ pub async fn make_current_le_coll(
 // * must call make_current_le_coll before calling this!
 pub async fn get_current_ips_by_country(
     current_logentries_coll: &Collection<LogEntry>,
-) -> anyhow::Result<Vec<Document>> {
+) -> anyhow::Result<Vec<CountryWithIps>> {
     let pipeline = [
         doc! {
             "$lookup": doc! {
@@ -229,9 +229,15 @@ pub async fn get_current_ips_by_country(
     ];
     let curs = current_logentries_coll.aggregate(pipeline, None).await?;
     let docs = curs.try_collect::<Vec<Document>>().await?;
+    // for doc in docs {
+    //     let vip: CountryWithIps = bson::from_document(doc)?;
+    //     dbg!(vip);
+    // }
+    // Ok(vec![doc! {}])
+    let mut country_with_ip_list: Vec<CountryWithIps> = vec![];
     for doc in docs {
         let vip: CountryWithIps = bson::from_document(doc)?;
-        dbg!(vip);
+        country_with_ip_list.push(vip);
     }
-    Ok(vec![doc! {}])
+    Ok(country_with_ip_list)
 }
