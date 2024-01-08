@@ -4,6 +4,7 @@ use console::style;
 use futures::{StreamExt, TryStreamExt};
 use mongodb::bson::doc;
 use mongodb::options::IndexOptions;
+use query::DateRange;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt;
@@ -347,27 +348,41 @@ pub async fn get_hostdata(ip: &str, hd_coll: &HostDataColl) -> anyhow::Result<Ho
 
 // TODO: this has to be fixed to show all ips in daterange
 #[allow(dead_code)]
+// output a vector of ips
 async fn output_ips(
     // logents_coll: &Collection<LogEntry>,
     hostdata_coll: &Collection<HostData>,
+    current_logentries_coll: &Collection<LogEntry>,
     ips: Vec<String>,
 ) -> anyhow::Result<()> {
     // let ips_in_daterange = query::find_ips_in_daterange(logents_coll, start, end).await?;
     for ip in ips.iter() {
         let hd = get_hostdata(ip, hostdata_coll).await?;
         println!("{}", hd);
-        println!("{}", ip);
-        // let mut curs =
-        //     query::find_logentries_by_ip_in_daterange(logents_coll, ip, start_bson, end_bson)
-        //         .await?;
+        let filter = doc! {"ip": ip};
+        // let options = doc! {"$sort": {"ip": 1}};
+        let mut curs = current_logentries_coll.find(filter, None).await?;
 
-        // while let Some(le) = curs.next().await {
-        //     let lex = le?;
-        //     println!("{}", lex);
-        // }
+        while let Some(le) = curs.next().await {
+            let lex = le?;
+            println!("{}", lex);
+        }
     }
     Ok(())
 }
+
+async fn output_all_current_ips(
+    hostdata_coll: &Collection<HostData>,
+    logents_coll: &Collection<LogEntry>,
+    current_logentries_coll: &Collection<LogEntry>,
+    date_range: &DateRange,
+) -> anyhow::Result<()> {
+    let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, &date_range).await?;
+    // dbg!(&ips_in_daterange);
+    output_ips(&hostdata_coll, &current_logentries_coll, ips_in_daterange).await?;
+    Ok(())
+}
+
 pub async fn search(
     start: &str,
     end: &str,
@@ -393,23 +408,33 @@ pub async fn search(
             _ => (),
         };
         // TODO do something with cursor
-    }
-    println!("{start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
-    let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, &date_range).await?;
-    // TODO fix and uncomment below
-    // output_ips(&logents_coll, &hostdata_coll, ips_in_daterange);
-    // TODO block below should be replaced
-    for ip in ips_in_daterange.iter() {
-        let hd = get_hostdata(ip, &hostdata_coll).await?;
-        println!("{}", hd);
-        let mut curs =
-            query::find_logentries_by_ip_in_daterange(&logents_coll, ip, &date_range).await?;
+    } else {
+        // println!("{start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
 
-        while let Some(le) = curs.next().await {
-            let lex = le?;
-            println!("{}", lex);
-        }
+        output_all_current_ips(
+            &hostdata_coll,
+            &logents_coll,
+            &current_logentries_coll,
+            &date_range,
+        )
+        .await?;
     }
+
+    // let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, &date_range).await?;
+    // // TODO fix and uncomment below
+    // output_ips(&hostdata_coll, &current_logentries_coll, ips_in_daterange).await?;
+    // // TODO block below should be replaced
+    // for ip in ips_in_daterange.iter() {
+    //     let hd = get_hostdata(ip, &hostdata_coll).await?;
+    //     println!("{}", hd);
+    //     let mut curs =
+    //         query::find_logentries_by_ip_in_daterange(&logents_coll, ip, &date_range).await?;
+
+    //     while let Some(le) = curs.next().await {
+    //         let lex = le?;
+    //         println!("{}", lex);
+    //     }
+    // }
     Ok(())
 }
 
