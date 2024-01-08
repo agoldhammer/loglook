@@ -217,6 +217,7 @@ pub async fn get_current_ips_by_country(
                 }
             }
         },
+        doc! {"$sort": doc! {"_id": 1}},
     ];
     let curs = current_logentries_coll.aggregate(pipeline, None).await?;
     let docs = curs.try_collect::<Vec<Document>>().await?;
