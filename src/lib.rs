@@ -377,9 +377,9 @@ async fn output_all_current_ips(
     current_logentries_coll: &Collection<LogEntry>,
     date_range: &DateRange,
 ) -> anyhow::Result<()> {
-    let ips_in_daterange = query::find_ips_in_daterange(&logents_coll, &date_range).await?;
+    let ips_in_daterange = query::find_ips_in_daterange(logents_coll, date_range).await?;
     // dbg!(&ips_in_daterange);
-    output_ips(&hostdata_coll, &current_logentries_coll, ips_in_daterange).await?;
+    output_ips(hostdata_coll, current_logentries_coll, ips_in_daterange).await?;
     Ok(())
 }
 
@@ -387,7 +387,7 @@ pub async fn search(
     start: &str,
     end: &str,
     ip: &Option<String>,
-    country: &Option<String>,
+    country: &Option<Vec<String>>,
     org: &Option<String>,
 ) -> anyhow::Result<()> {
     println!("search: {start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
@@ -462,7 +462,8 @@ mod tests {
         let start = "2023-12-29T11:45:00Z";
         let end = "2023-12-29T12:00:00Z";
         let void_arg = None as Option<String>;
-        let res = aw!(search(start, end, &void_arg, &void_arg, &void_arg));
+        let void_vec = None as Option<Vec<String>>;
+        let res = aw!(search(start, end, &void_arg, &void_vec, &void_arg));
         tokio_test::assert_ok!(res);
     }
 }

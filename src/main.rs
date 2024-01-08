@@ -42,7 +42,8 @@ enum Command {
 
         /// search by country
         #[clap(long, short)]
-        country: Option<String>,
+        #[arg(num_args(0..))]
+        country: Option<Vec<String>>,
 
         /// search by organization
         #[clap(long, short)]
