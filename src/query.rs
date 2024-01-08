@@ -168,3 +168,68 @@ pub async fn make_current_le_coll(
         .await?;
     Ok(())
 }
+
+/*
+ips by country
+[
+    doc! {
+        "$match": doc! {
+            "$and": [
+                doc! {
+                    "time": doc! {
+                        "$gte": DateTime::parse_rfc3339_str("2023-12-28T00:00:00.000Z")?
+                    }
+                },
+                doc! {
+                    "time": doc! {
+                        "$lte": DateTime::parse_rfc3339_str("2023-12-31T00:00:00.000Z")?
+                    }
+                }
+            ]
+        }
+    },
+    doc! {
+        "$lookup": doc! {
+            "as": "hostdata",
+            "from": "hostdata",
+            "foreignField": "ip",
+            "localField": "ip"
+        }
+    },
+    doc! {
+        "$project": doc! {
+            "ip": 1,
+            "hostdata.geodata.country_name": 1
+        }
+    },
+    doc! {
+        "$sort": doc! {
+            "hostdata.geodata.country_name": 1
+        }
+    },
+    doc! {
+        "$set": doc! {
+            "country": "$hostdata.geodata.country_name"
+        }
+    },
+    doc! {
+        "$project": doc! {
+            "hostdata": 0
+        }
+    },
+    doc! {
+        "$unwind": doc! {
+            "path": "$country",
+            "preserveNullAndEmptyArrays": false
+        }
+    },
+    doc! {
+        "$group": doc! {
+            "_id": "$country",
+            "ips": doc! {
+                "$push": "$ip"
+            }
+        }
+    }
+]
+*/
