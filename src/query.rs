@@ -8,6 +8,7 @@ use futures::stream::{StreamExt, TryStreamExt};
 use mongodb::bson::doc;
 // use mongodb::options::FindOptions;
 use mongodb::{Collection, Cursor};
+use serde::{Deserialize, Serialize};
 
 type IpsInDaterange = Vec<String>;
 
@@ -15,6 +16,13 @@ type IpsInDaterange = Vec<String>;
 pub struct DateRange {
     pub start: DateTime,
     pub end: DateTime,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct CountryWithIps {
+    #[serde(alias = "_id")]
+    pub country: String,
+    pub ips: Vec<String>,
 }
 
 pub fn time_str_to_bson(
@@ -33,72 +41,72 @@ pub fn time_str_to_daterange(start_str: &str, end_str: &str) -> anyhow::Result<D
     Ok(DateRange { start: s, end: e })
 }
 
-#[allow(dead_code)]
-#[allow(unused_variables)]
-pub async fn find_ips_in_daterange_by_country(
-    // hdcoll: &Collection<HostData>,
-    lecoll: &Collection<LogEntry>,
-    date_range: &DateRange,
-) -> anyhow::Result<()> {
-    let pipeline = [
-        doc! {
-            "$match": doc! {
-                "$and": [
-                    doc! {
-                        "time": doc! {
-                            "$gte": date_range.start,
-                        }
-                    },
-                    doc! {
-                        "time": doc! {
-                            "$lte": date_range.end,
-                        }
-                    }
-                ]
-            }
-        },
-        doc! {
-            "$lookup": doc! {
-                "as": "hostdata",
-                "from": "hostdata",
-                "foreignField": "ip",
-                "localField": "ip"
-            }
-        },
-        doc! {
-            "$project": doc! {
-                "ip": 1,
-                "hostdata.geodata.country_name": 1
-            }
-        },
-        doc! {
-            "$sort": doc! {
-                "hostdata.geodata.country_name": 1
-            }
-        },
-        doc! {
-            "$set": doc! {
-                "country": "$hostdata.geodata.country_name"
-            }
-        },
-        doc! {
-            "$project": doc! {
-                "hostdata": 0
-            }
-        },
-        doc! {
-            "$unwind": doc! {
-                "path": "$country",
-                "preserveNullAndEmptyArrays": false
-            }
-        },
-    ];
-    let mut curs = lecoll.aggregate(pipeline, None).await?;
-    while let Some(doc) = curs.next().await {
-        println!("newfn: {:?}", doc);
-    }
-    Ok(())
-}
+// #[allow(dead_code)]
+// #[allow(unused_variables)]
+// pub async fn find_ips_in_daterange_by_country(
+//     // hdcoll: &Collection<HostData>,
+//     lecoll: &Collection<LogEntry>,
+//     date_range: &DateRange,
+// ) -> anyhow::Result<()> {
+//     let pipeline = [
+//         doc! {
+//             "$match": doc! {
+//                 "$and": [
+//                     doc! {
+//                         "time": doc! {
+//                             "$gte": date_range.start,
+//                         }
+//                     },
+//                     doc! {
+//                         "time": doc! {
+//                             "$lte": date_range.end,
+//                         }
+//                     }
+//                 ]
+//             }
+//         },
+//         doc! {
+//             "$lookup": doc! {
+//                 "as": "hostdata",
+//                 "from": "hostdata",
+//                 "foreignField": "ip",
+//                 "localField": "ip"
+//             }
+//         },
+//         doc! {
+//             "$project": doc! {
+//                 "ip": 1,
+//                 "hostdata.geodata.country_name": 1
+//             }
+//         },
+//         doc! {
+//             "$sort": doc! {
+//                 "hostdata.geodata.country_name": 1
+//             }
+//         },
+//         doc! {
+//             "$set": doc! {
+//                 "country": "$hostdata.geodata.country_name"
+//             }
+//         },
+//         doc! {
+//             "$project": doc! {
+//                 "hostdata": 0
+//             }
+//         },
+//         doc! {
+//             "$unwind": doc! {
+//                 "path": "$country",
+//                 "preserveNullAndEmptyArrays": false
+//             }
+//         },
+//     ];
+//     let mut curs = lecoll.aggregate(pipeline, None).await?;
+//     while let Some(doc) = curs.next().await {
+//         println!("newfn: {:?}", doc);
+//     }
+//     Ok(())
+// }
 
 // #[allow(unused_variables)]
 // pub async fn find_hostdata_by_time_and_country(
@@ -222,7 +230,8 @@ pub async fn get_current_ips_by_country(
     let curs = current_logentries_coll.aggregate(pipeline, None).await?;
     let docs = curs.try_collect::<Vec<Document>>().await?;
     for doc in docs {
-        dbg!(doc);
+        let vip: CountryWithIps = bson::from_document(doc)?;
+        dbg!(vip);
     }
     Ok(vec![doc! {}])
 }
