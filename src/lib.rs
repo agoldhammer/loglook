@@ -350,17 +350,14 @@ pub async fn get_hostdata(ip: &str, hd_coll: &HostDataColl) -> anyhow::Result<Ho
 #[allow(dead_code)]
 // output a vector of ips
 async fn output_ips(
-    // logents_coll: &Collection<LogEntry>,
     hostdata_coll: &Collection<HostData>,
     current_logentries_coll: &Collection<LogEntry>,
     ips: Vec<String>,
 ) -> anyhow::Result<()> {
-    // let ips_in_daterange = query::find_ips_in_daterange(logents_coll, start, end).await?;
     for ip in ips.iter() {
         let hd = get_hostdata(ip, hostdata_coll).await?;
         println!("{}", hd);
         let filter = doc! {"ip": ip};
-        // let options = doc! {"$sort": {"ip": 1}};
         let mut curs = current_logentries_coll.find(filter, None).await?;
 
         while let Some(le) = curs.next().await {
@@ -402,24 +399,31 @@ pub async fn search(
     let current_logentries_coll: mongodb::Collection<LogEntry> =
         loglook_db.collection("current_logentries");
     if country.is_some() {
-        println!("got a country {:?}", country);
+        // println!("got a country {:?}", country);
         match (ip, country, org) {
-            (None, Some(_country), None) => {
+            (None, Some(country), None) => {
                 let country_with_ips_vec =
                     query::get_current_ips_by_country(&current_logentries_coll).await?;
-                println!("{:?}", country_with_ips_vec);
+                // println!("{:?}", country_with_ips_vec);
                 for country_with_ips in country_with_ips_vec {
-                    println!(
-                        "{}: {}\n----------",
-                        style("Country").red(),
-                        style(country_with_ips.country).yellow()
-                    );
-                    output_ips(
-                        &hostdata_coll,
-                        &current_logentries_coll,
-                        country_with_ips.ips,
-                    )
-                    .await?;
+                    // * The country cli arg yields a vector of countries to accept
+                    // * If no countries are specified after --country flag, all are accepted
+                    let current_country = &country_with_ips.country;
+                    let accepted_countries = country;
+                    if accepted_countries.contains(current_country) || accepted_countries.len() == 0
+                    {
+                        println!(
+                            "{}: {}\n----------",
+                            style("Country").red(),
+                            style(country_with_ips.country).yellow()
+                        );
+                        output_ips(
+                            &hostdata_coll,
+                            &current_logentries_coll,
+                            country_with_ips.ips,
+                        )
+                        .await?;
+                    };
                 }
             }
             _ => (),

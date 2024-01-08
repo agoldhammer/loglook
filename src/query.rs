@@ -229,11 +229,6 @@ pub async fn get_current_ips_by_country(
     ];
     let curs = current_logentries_coll.aggregate(pipeline, None).await?;
     let docs = curs.try_collect::<Vec<Document>>().await?;
-    // for doc in docs {
-    //     let vip: CountryWithIps = bson::from_document(doc)?;
-    //     dbg!(vip);
-    // }
-    // Ok(vec![doc! {}])
     let mut country_with_ip_list: Vec<CountryWithIps> = vec![];
     for doc in docs {
         let vip: CountryWithIps = bson::from_document(doc)?;
