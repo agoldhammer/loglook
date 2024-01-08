@@ -4,7 +4,7 @@ use crate::log_entries::LogEntry;
 use bson;
 use bson::Document;
 use bson::{Bson, DateTime};
-use futures::stream::StreamExt;
+use futures::stream::{StreamExt, TryStreamExt};
 use mongodb::bson::doc;
 // use mongodb::options::FindOptions;
 use mongodb::{Collection, Cursor};
@@ -169,67 +169,59 @@ pub async fn make_current_le_coll(
     Ok(())
 }
 
-/*
-ips by country
-[
-    doc! {
-        "$match": doc! {
-            "$and": [
-                doc! {
-                    "time": doc! {
-                        "$gte": DateTime::parse_rfc3339_str("2023-12-28T00:00:00.000Z")?
-                    }
-                },
-                doc! {
-                    "time": doc! {
-                        "$lte": DateTime::parse_rfc3339_str("2023-12-31T00:00:00.000Z")?
-                    }
-                }
-            ]
-        }
-    },
-    doc! {
-        "$lookup": doc! {
-            "as": "hostdata",
-            "from": "hostdata",
-            "foreignField": "ip",
-            "localField": "ip"
-        }
-    },
-    doc! {
-        "$project": doc! {
-            "ip": 1,
-            "hostdata.geodata.country_name": 1
-        }
-    },
-    doc! {
-        "$sort": doc! {
-            "hostdata.geodata.country_name": 1
-        }
-    },
-    doc! {
-        "$set": doc! {
-            "country": "$hostdata.geodata.country_name"
-        }
-    },
-    doc! {
-        "$project": doc! {
-            "hostdata": 0
-        }
-    },
-    doc! {
-        "$unwind": doc! {
-            "path": "$country",
-            "preserveNullAndEmptyArrays": false
-        }
-    },
-    doc! {
-        "$group": doc! {
-            "_id": "$country",
-            "ips": doc! {
-                "$push": "$ip"
+// * must call make_current_le_coll before calling this!
+pub async fn get_current_ips_by_country(
+    current_logentries_coll: &Collection<LogEntry>,
+) -> anyhow::Result<Vec<Document>> {
+    let pipeline = [
+        doc! {
+            "$lookup": doc! {
+                "as": "hostdata",
+                "from": "hostdata",
+                "foreignField": "ip",
+                "localField": "ip"
             }
-        }
+        },
+        doc! {
+            "$project": doc! {
+                "ip": 1,
+                "hostdata.geodata.country_name": 1
+            }
+        },
+        doc! {
+            "$sort": doc! {
+                "hostdata.geodata.country_name": 1
+            }
+        },
+        doc! {
+            "$set": doc! {
+                "country": "$hostdata.geodata.country_name"
+            }
+        },
+        doc! {
+            "$project": doc! {
+                "hostdata": 0
+            }
+        },
+        doc! {
+            "$unwind": doc! {
+                "path": "$country",
+                "preserveNullAndEmptyArrays": false
+            }
+        },
+        doc! {
+            "$group": doc! {
+                "_id": "$country",
+                "ips": doc! {
+                    "$addToSet": "$ip"
+                }
+            }
+        },
+    ];
+    let curs = current_logentries_coll.aggregate(pipeline, None).await?;
+    let docs = curs.try_collect::<Vec<Document>>().await?;
+    for doc in docs {
+        dbg!(doc);
     }
-]
-*/
+    Ok(vec![doc! {}])
+}

@@ -121,7 +121,7 @@ fn progress_bar_setup(n_pb_items: u64) -> (ProgressBar, ProgressBar) {
     (pb_rdns, pb_geo)
 }
 
-async fn setup_db(db_uri: &str) -> anyhow::Result<(HostDataColl, LogEntryColl)> {
+async fn setup_db(db_uri: &str) -> anyhow::Result<(mongodb::Database, HostDataColl, LogEntryColl)> {
     let client = Client::with_uri_str(db_uri).await?;
     // TODO: should take dbname from config
     let db = client.database("loglook");
@@ -160,7 +160,7 @@ async fn setup_db(db_uri: &str) -> anyhow::Result<(HostDataColl, LogEntryColl)> 
         .build();
     logents_coll.create_index(le_time_index_model, None).await?;
     // println!("Indices {}, {}", hd_index.index_name, le_index.index_name);
-    Ok((host_data_coll, logents_coll))
+    Ok((db, host_data_coll, logents_coll))
 }
 
 // * check if ip is already in HostData collection in db
@@ -190,7 +190,7 @@ pub async fn run(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
         n_unique_ips: 0,
     };
     // * setup database
-    let (host_data_coll, logents_coll) = setup_db(&config.db_uri).await?;
+    let (_, host_data_coll, logents_coll) = setup_db(&config.db_uri).await?;
 
     // * input stage
     let file = read_lines(path);
@@ -379,20 +379,16 @@ pub async fn search(
 
     let date_range = query::time_str_to_daterange(start, end)?;
 
-    let (hostdata_coll, logents_coll) = setup_db(&config.db_uri).await?;
-    // * set up the temporary collection of logentries using the current daterange
+    let (loglook_db, hostdata_coll, logents_coll) = setup_db(&config.db_uri).await?;
+    // * set up the temporary collection of logentries using the current daterange, name = "current_logentries"
     query::make_current_le_coll(&date_range, &logents_coll).await?;
+    let current_logentries_coll: mongodb::Collection<LogEntry> =
+        loglook_db.collection("current_logentries");
     if country.is_some() {
         println!("got a country {:?}", country);
         match (ip, country, org) {
             (None, Some(_country), None) => {
-                let _curs =
-                    query::find_ips_in_daterange_by_country(&logents_coll, &date_range).await?;
-                // let curs =
-                //     query::find_hostdata_by_time_and_country(&hostdata_coll, start, end, country)
-                //         .await?;
-                // let v: Vec<HostData> = curs.try_collect().await?;
-                // println!("v len: {}", v.len());
+                query::get_current_ips_by_country(&current_logentries_coll).await?;
             }
             _ => (),
         };
