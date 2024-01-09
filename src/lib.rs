@@ -410,7 +410,7 @@ pub async fn search(
                     // * If no countries are specified after --country flag, all are accepted
                     let current_country = &country_with_ips.country;
                     let accepted_countries = country;
-                    if accepted_countries.contains(current_country) || accepted_countries.len() == 0
+                    if accepted_countries.contains(current_country) || accepted_countries.is_empty()
                     {
                         println!(
                             "{}: {}\n----------",
