@@ -347,14 +347,14 @@ pub async fn get_hostdata(ip: &str, hd_coll: &HostDataColl) -> anyhow::Result<Ho
 }
 
 // TODO: this has to be fixed to show all ips in daterange
-#[allow(dead_code)]
 // output a vector of ips
 async fn output_ips(
     suppress_logentry_output: bool,
     hostdata_coll: &Collection<HostData>,
     current_logentries_coll: &Collection<LogEntry>,
-    ips: Vec<String>,
+    ips: &mut Vec<String>,
 ) -> anyhow::Result<()> {
+    ips.sort();
     for ip in ips.iter() {
         let hd = get_hostdata(ip, hostdata_coll).await?;
         println!("{}", hd);
@@ -372,18 +372,18 @@ async fn output_ips(
 }
 
 async fn output_all_current_ips(
+    suppress_logentry_output: bool,
     hostdata_coll: &Collection<HostData>,
     logents_coll: &Collection<LogEntry>,
     current_logentries_coll: &Collection<LogEntry>,
     date_range: &DateRange,
 ) -> anyhow::Result<()> {
-    let ips_in_daterange = query::find_ips_in_daterange(logents_coll, date_range).await?;
-    // dbg!(&ips_in_daterange);
+    let mut ips_in_daterange = query::find_ips_in_daterange(logents_coll, date_range).await?;
     output_ips(
-        false,
+        suppress_logentry_output,
         hostdata_coll,
         current_logentries_coll,
-        ips_in_daterange,
+        &mut ips_in_daterange,
     )
     .await?;
     Ok(())
@@ -425,7 +425,7 @@ pub async fn search(
                 let country_with_ips_vec =
                     query::get_current_ips_by_country(&current_logentries_coll).await?;
                 // println!("{:?}", country_with_ips_vec);
-                for country_with_ips in country_with_ips_vec {
+                for mut country_with_ips in country_with_ips_vec {
                     // * The country cli arg yields a vector of countries to accept
                     // * If no countries are specified after --country flag, all are accepted
                     let current_country = &country_with_ips.country;
@@ -441,7 +441,7 @@ pub async fn search(
                             suppress_logentry_output,
                             &hostdata_coll,
                             &current_logentries_coll,
-                            country_with_ips.ips,
+                            &mut country_with_ips.ips,
                         )
                         .await?;
                     };
@@ -452,6 +452,7 @@ pub async fn search(
         // TODO do something with cursor
     } else {
         output_all_current_ips(
+            suppress_logentry_output,
             &hostdata_coll,
             &logents_coll,
             &current_logentries_coll,
