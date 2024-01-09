@@ -421,9 +421,11 @@ pub async fn search(
     if country.is_some() || ip.is_some() || org.is_some() {
         match (ip, country, org) {
             (None, Some(country), None) => {
+                // * get vec of all CountryWithIps in current daterange, then pass only those
+                //  * corresponding to an accepted country (as specified on command line)
+                // * or output
                 let country_with_ips_vec =
                     query::get_current_ips_by_country(&current_logentries_coll).await?;
-                // println!("{:?}", country_with_ips_vec);
                 for mut country_with_ips in country_with_ips_vec {
                     // * The country cli arg yields a vector of countries to accept
                     // * If no countries are specified after --country flag, all are accepted
