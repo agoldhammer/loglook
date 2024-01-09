@@ -350,6 +350,7 @@ pub async fn get_hostdata(ip: &str, hd_coll: &HostDataColl) -> anyhow::Result<Ho
 #[allow(dead_code)]
 // output a vector of ips
 async fn output_ips(
+    suppress_logentry_output: bool,
     hostdata_coll: &Collection<HostData>,
     current_logentries_coll: &Collection<LogEntry>,
     ips: Vec<String>,
@@ -357,12 +358,14 @@ async fn output_ips(
     for ip in ips.iter() {
         let hd = get_hostdata(ip, hostdata_coll).await?;
         println!("{}", hd);
-        let filter = doc! {"ip": ip};
-        let mut curs = current_logentries_coll.find(filter, None).await?;
+        if !suppress_logentry_output {
+            let filter = doc! {"ip": ip};
+            let mut curs = current_logentries_coll.find(filter, None).await?;
 
-        while let Some(le) = curs.next().await {
-            let lex = le?;
-            println!("{}", lex);
+            while let Some(le) = curs.next().await {
+                let lex = le?;
+                println!("{}", lex);
+            }
         }
     }
     Ok(())
@@ -376,18 +379,35 @@ async fn output_all_current_ips(
 ) -> anyhow::Result<()> {
     let ips_in_daterange = query::find_ips_in_daterange(logents_coll, date_range).await?;
     // dbg!(&ips_in_daterange);
-    output_ips(hostdata_coll, current_logentries_coll, ips_in_daterange).await?;
+    output_ips(
+        false,
+        hostdata_coll,
+        current_logentries_coll,
+        ips_in_daterange,
+    )
+    .await?;
     Ok(())
 }
 
 pub async fn search(
+    nologs: &Option<bool>,
     start: &str,
     end: &str,
     ip: &Option<String>,
     country: &Option<Vec<String>>,
     org: &Option<String>,
 ) -> anyhow::Result<()> {
-    println!("search: {start}-{end}--{:?}--{:?}--{:?}", ip, country, org);
+    println!(
+        "search: {start}-{end}--{:?}--{:?}--{:?}--nologs {:?}",
+        ip, country, org, nologs
+    );
+
+    // let mut no_logentry_output: bool = false;
+    let suppress_logentry_output: bool = match *nologs {
+        Some(true) => true,
+        Some(false) => false,
+        None => false,
+    };
 
     let config = read_config();
 
@@ -418,6 +438,7 @@ pub async fn search(
                             style(country_with_ips.country).yellow()
                         );
                         output_ips(
+                            suppress_logentry_output,
                             &hostdata_coll,
                             &current_logentries_coll,
                             country_with_ips.ips,
@@ -463,11 +484,12 @@ mod tests {
 
     #[test]
     fn test_search() {
+        let nologs = None as Option<bool>;
         let start = "2023-12-29T11:45:00Z";
         let end = "2023-12-29T12:00:00Z";
         let void_arg = None as Option<String>;
         let void_vec = None as Option<Vec<String>>;
-        let res = aw!(search(start, end, &void_arg, &void_vec, &void_arg));
+        let res = aw!(search(&nologs, start, end, &void_arg, &void_vec, &void_arg));
         tokio_test::assert_ok!(res);
     }
 }

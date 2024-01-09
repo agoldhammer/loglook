@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
 use std::process;
 
 // * https://rust-cli-recommendations.sunshowers.io/handling-arguments.html
@@ -25,9 +25,10 @@ enum Command {
     },
     /// Find ips in date range
     Search {
-        // / days back from present time, e.g. 2
-        // #[clap(long, short, required_unless_present("start"), conflicts_with("start"))]
-        // days: Option<i32>,
+        #[clap(long, short, action=ArgAction::SetTrue)]
+        /// no output of logentries
+        nologs: Option<bool>,
+
         /// start time, e.g. ISO: 2023-12-29T00:00:00Z
         #[clap(long, short)]
         start: String,
@@ -59,6 +60,7 @@ async fn main() {
         #[allow(unused_variables)]
         Command::Read { daemon, path } => loglook::run(daemon, path).await,
         Command::Search {
+            nologs,
             start,
             end,
             ip,
@@ -69,7 +71,7 @@ async fn main() {
                 "s {:?}, e {:?}, ip {:?} co {:?} org {:?}",
                 start, end, ip, country, org
             );
-            loglook::search(start, end, ip, country, org).await
+            loglook::search(nologs, start, end, ip, country, org).await
         }
     };
 
