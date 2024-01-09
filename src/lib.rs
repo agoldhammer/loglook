@@ -352,7 +352,7 @@ async fn output_ips(
     suppress_logentry_output: bool,
     hostdata_coll: &Collection<HostData>,
     current_logentries_coll: &Collection<LogEntry>,
-    ips: &mut Vec<String>,
+    ips: &mut [String],
 ) -> anyhow::Result<()> {
     ips.sort();
     for ip in ips.iter() {
