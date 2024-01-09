@@ -419,7 +419,6 @@ pub async fn search(
     let current_logentries_coll: mongodb::Collection<LogEntry> =
         loglook_db.collection("current_logentries");
     if country.is_some() || ip.is_some() || org.is_some() {
-        // println!("got a country {:?}", country);
         match (ip, country, org) {
             (None, Some(country), None) => {
                 let country_with_ips_vec =
@@ -455,7 +454,6 @@ pub async fn search(
             }
             _ => (),
         };
-        // TODO do something with cursor
     } else {
         output_all_current_ips(
             suppress_logentry_output,
