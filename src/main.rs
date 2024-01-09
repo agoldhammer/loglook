@@ -38,16 +38,16 @@ enum Command {
         end: String,
 
         /// search for IP address
-        #[clap(long, short)]
+        #[clap(long, short, group = "select")]
         ip: Option<String>,
 
         /// search by country
-        #[clap(long, short)]
+        #[clap(long, short, group = "select")]
         #[arg(num_args(0..))]
         country: Option<Vec<String>>,
 
         /// search by organization
-        #[clap(long, short)]
+        #[clap(long, short, group = "select")]
         org: Option<String>,
     },
 }
