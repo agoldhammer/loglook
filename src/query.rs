@@ -41,18 +41,6 @@ pub fn time_str_to_daterange(start_str: &str, end_str: &str) -> anyhow::Result<D
     Ok(DateRange { start: s, end: e })
 }
 
-pub async fn find_logentries_by_ip_in_daterange(
-    logents_coll: &Collection<LogEntry>,
-    ip: &str,
-    date_range: &DateRange,
-) -> anyhow::Result<Cursor<LogEntry>> {
-    let filter = doc! {"ip" : ip, "time": {"$gte": date_range.start, "$lte": date_range.end}};
-    logents_coll
-        .find(filter, None)
-        .await
-        .map_err(anyhow::Error::msg)
-}
-
 async fn get_unique_ips_in_daterange(
     coll: &Collection<LogEntry>,
     date_range: &DateRange,
