@@ -25,7 +25,7 @@ enum Command {
     },
     /// Find ips in date range
     Search {
-        #[clap(long, short, action=ArgAction::SetTrue)]
+        #[clap(long="no-logs", short, action=ArgAction::SetTrue)]
         /// no output of logentries
         nologs: Option<bool>,
 
