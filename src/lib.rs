@@ -418,7 +418,7 @@ pub async fn search(
     query::make_current_le_coll(&date_range, &logents_coll).await?;
     let current_logentries_coll: mongodb::Collection<LogEntry> =
         loglook_db.collection("current_logentries");
-    if country.is_some() {
+    if country.is_some() || ip.is_some() || org.is_some() {
         // println!("got a country {:?}", country);
         match (ip, country, org) {
             (None, Some(country), None) => {
@@ -446,6 +446,12 @@ pub async fn search(
                         .await?;
                     };
                 }
+            }
+            (Some(ip), None, None) => {
+                println!("ip search for {} not implemented yet", ip);
+            }
+            (None, None, Some(org)) => {
+                println!("org search for {} not implemented yet", org);
             }
             _ => (),
         };
