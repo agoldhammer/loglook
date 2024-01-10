@@ -6,9 +6,11 @@ use bson::Document;
 use bson::{Bson, DateTime};
 use futures::stream::{StreamExt, TryStreamExt};
 use mongodb::bson::doc;
-// use mongodb::options::FindOptions;
+use mongodb::bson::Regex;
+use mongodb::options::FindOptions;
 use mongodb::{Collection, Cursor};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 type IpsInDaterange = Vec<String>;
 
@@ -52,6 +54,36 @@ async fn get_unique_ips_in_daterange(
     coll.aggregate(pipeline, None)
         .await
         .map_err(anyhow::Error::msg)
+}
+
+#[derive(Deserialize)]
+struct ProjectedLogEntry {
+    ip: String,
+}
+
+pub async fn find_ips_matching_regex(
+    current_logentries_coll: &Collection<LogEntry>,
+    pattern: &String,
+) -> anyhow::Result<Vec<String>> {
+    println!("The pattern is {}", pattern);
+    let re = Regex {
+        pattern: pattern.clone(),
+        options: String::new(),
+    };
+    let filter = doc! {"ip": doc! {"$regex": re}};
+    // let filter = doc! {"ip": "94.102.61.7"};
+    let proj = doc! {"ip": 1};
+    let options = FindOptions::builder().projection(proj).build();
+    let mut curs = current_logentries_coll
+        .clone_with_type::<ProjectedLogEntry>()
+        .find(filter, options)
+        .await?;
+    // * use HashSet to ensure uniqueness, then convert to vec for compatibility
+    let mut ips: HashSet<String> = HashSet::new();
+    while let Some(projected_doc) = curs.try_next().await? {
+        ips.insert(projected_doc.ip);
+    }
+    Ok(ips.into_iter().collect())
 }
 
 pub async fn find_ips_in_daterange(

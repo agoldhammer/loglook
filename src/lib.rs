@@ -448,9 +448,14 @@ pub async fn search(
                     };
                 }
             }
+            // * search for ip with regex
             (Some(ip), None, None) => {
-                println!("ip search for {} not implemented yet", ip);
+                // let pattern = ip.clone();
+                // println!("ip search for {} not implemented yet", pattern);
+                let ips = query::find_ips_matching_regex(&current_logentries_coll, ip).await?;
+                dbg!(ips);
             }
+            // * search for org with regex
             (None, None, Some(org)) => {
                 println!("org search for {} not implemented yet", org);
             }
