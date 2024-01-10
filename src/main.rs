@@ -1,5 +1,11 @@
 use clap::{ArgAction, Parser, Subcommand};
+use ctrlc;
+use std::path::PathBuf;
 use std::process;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::sleep;
 
 // * https://rust-cli-recommendations.sunshowers.io/handling-arguments.html
 #[derive(Debug, Parser)]
@@ -52,13 +58,35 @@ enum Command {
     },
 }
 
+async fn read(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::SeqCst);
+    })?;
+    while running.load(Ordering::SeqCst) {
+        println!("Running...");
+        loglook::run(daemon, path).await?;
+        // * read every 30 minutes
+        // TODO add variable duration???
+        if *daemon {
+            sleep(Duration::from_secs(1800)).await;
+        } else {
+            break;
+        }
+    }
+
+    println!("Exiting gracefully!");
+    Ok(())
+}
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() {
     let cli = App::parse();
     // let args = cli.command
     let result = match &cli.command {
         #[allow(unused_variables)]
-        Command::Read { daemon, path } => loglook::run(daemon, path).await,
+        Command::Read { daemon, path } => read(daemon, path).await,
         Command::Search {
             nologs,
             start,
