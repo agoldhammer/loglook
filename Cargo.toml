@@ -12,6 +12,7 @@ chrono = { version = "0.4.31", features = ["serde"] }
 clap = { version = "4.4.8", features = ["derive"] }
 config-file = "0.2.3"
 console = "0.15.7"
+ctrlc = { version = "3.4.2", features = ["termination"] }
 dns-lookup = "2.0.4"
 error-chain = "0.12.4"
 futures = "0.3.30"
