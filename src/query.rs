@@ -27,6 +27,13 @@ pub struct CountryWithIps {
     pub ips: Vec<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct OrgWithIps {
+    #[serde(alias = "_id")]
+    pub org: String,
+    pub ips: Vec<String>,
+}
+
 pub fn time_str_to_bson(
     start_str: &str,
     end_str: &str,
@@ -176,4 +183,104 @@ pub async fn get_current_ips_by_country(
         country_with_ip_list.push(vip);
     }
     Ok(country_with_ip_list)
+}
+
+// * must call make_current_le_coll before calling this!
+pub async fn get_current_ips_by_org(
+    current_logentries_coll: &Collection<LogEntry>,
+) -> anyhow::Result<Vec<OrgWithIps>> {
+    // let pipeline = [
+    //     doc! {
+    //         "$lookup": doc! {
+    //             "as": "hostdata",
+    //             "from": "hostdata",
+    //             "foreignField": "ip",
+    //             "localField": "ip"
+    //         }
+    //     },
+    //     doc! {
+    //         "$project": doc! {
+    //             "ip": 1,
+    //             "hostdata.geodata.organiation": 1
+    //         }
+    //     },
+    //     doc! {
+    //         "$sort": doc! {
+    //             "hostdata.geodata.organization": 1
+    //         }
+    //     },
+    //     doc! {
+    //         "$set": doc! {
+    //             "organization": "$hostdata.geodata.organization"
+    //         }
+    //     },
+    //     doc! {
+    //         "$project": doc! {
+    //             "hostdata": 0
+    //         }
+    //     },
+    //     doc! {
+    //         "$unwind": doc! {
+    //             "path": "$organization",
+    //             "preserveNullAndEmptyArrays": false
+    //         }
+    //     },
+    //     doc! {
+    //         "$group": doc! {
+    //             "_id": "$organization",
+    //             "ips": doc! {
+    //                 "$addToSet": "$ip"
+    //             }
+    //         }
+    //     },
+    //     doc! {"$sort": doc! {"_id": 1}},
+    // ];
+    let pipeline = [
+        doc! {
+            "$lookup": doc! {
+                "as": "hostdata",
+                "from": "hostdata",
+                "foreignField": "ip",
+                "localField": "ip"
+            }
+        },
+        doc! {
+            "$project": doc! {
+                "ip": 1,
+                "hostdata.geodata.organization": 1
+            }
+        },
+        doc! {
+            "$set": doc! {
+                "organization": "$hostdata.geodata.organization"
+            }
+        },
+        doc! {
+            "$project": doc! {
+                "hostdata": 0
+            }
+        },
+        doc! {
+            "$unwind": doc! {
+                "path": "$organization",
+                "preserveNullAndEmptyArrays": false
+            }
+        },
+        doc! {
+            "$group": doc! {
+                "_id": "$organization",
+                "ips": doc! {
+                    "$addToSet": "$ip"
+                }
+            }
+        },
+    ];
+    let curs = current_logentries_coll.aggregate(pipeline, None).await?;
+    let docs = curs.try_collect::<Vec<Document>>().await?;
+    let mut org_with_ip_list: Vec<OrgWithIps> = vec![];
+    for doc in docs {
+        let vip: OrgWithIps = bson::from_document(doc)?;
+        org_with_ip_list.push(vip);
+    }
+    Ok(org_with_ip_list)
 }

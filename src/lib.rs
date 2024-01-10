@@ -450,8 +450,6 @@ pub async fn search(
             }
             // * search for ip with regex
             (Some(ip), None, None) => {
-                // let pattern = ip.clone();
-                // println!("ip search for {} not implemented yet", pattern);
                 let mut ips = query::find_ips_matching_regex(&current_logentries_coll, ip).await?;
                 output_ips(
                     suppress_logentry_output,
@@ -460,11 +458,34 @@ pub async fn search(
                     &mut ips,
                 )
                 .await?;
-                dbg!(ips);
             }
             // * search for org with regex
             (None, None, Some(org)) => {
-                println!("org search for {} not implemented yet", org);
+                let orgs_with_ips = query::get_current_ips_by_org(&current_logentries_coll).await?;
+                for org_with_ips in orgs_with_ips {
+                    if org_with_ips.org == org.to_owned() {
+                        let mut ips = org_with_ips.ips;
+                        output_ips(
+                            suppress_logentry_output,
+                            &hostdata_coll,
+                            &current_logentries_coll,
+                            &mut ips,
+                        )
+                        .await?;
+                    }
+                }
+
+                // dbg!(org_with_ips);
+                // for org_with_ip in org_with_ips {
+                //     dbg!(org_with_ip);
+                // }
+                // output_ips(
+                //     suppress_logentry_output,
+                //     &hostdata_coll,
+                //     &current_logentries_coll,
+                //     &mut ips,
+                // )
+                // .await?;
             }
             _ => (),
         };
@@ -496,7 +517,7 @@ mod tests {
     }
 
     #[test]
-    fn config_read_rest() {
+    fn config_read_test() {
         let db_uri = read_config().db_uri;
         assert!(db_uri.contains("27017"));
     }
