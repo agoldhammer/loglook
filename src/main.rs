@@ -64,13 +64,20 @@ async fn read(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
     ctrlc::set_handler(move || {
         r.store(false, Ordering::SeqCst);
     })?;
+    // * read every 30 minutes
+    // TODO add variable duration???
+    // * wake up once a second to check for ctrl-c; rerun main fn when wait reduced to 0
+    let mut seconds_till_run = 0;
     while running.load(Ordering::SeqCst) {
-        println!("Running...");
-        loglook::run(daemon, path).await?;
-        // * read every 30 minutes
-        // TODO add variable duration???
+        if seconds_till_run == 0 {
+            seconds_till_run = 1800; // reset to 30 minutes
+            println!("Checking log ...");
+            loglook::run(daemon, path).await?;
+        }
+
         if *daemon {
-            sleep(Duration::from_secs(1800)).await;
+            sleep(Duration::from_secs(1)).await;
+            seconds_till_run = seconds_till_run - 1;
         } else {
             break;
         }
