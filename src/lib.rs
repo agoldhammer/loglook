@@ -452,7 +452,14 @@ pub async fn search(
             (Some(ip), None, None) => {
                 // let pattern = ip.clone();
                 // println!("ip search for {} not implemented yet", pattern);
-                let ips = query::find_ips_matching_regex(&current_logentries_coll, ip).await?;
+                let mut ips = query::find_ips_matching_regex(&current_logentries_coll, ip).await?;
+                output_ips(
+                    suppress_logentry_output,
+                    &hostdata_coll,
+                    &current_logentries_coll,
+                    &mut ips,
+                )
+                .await?;
                 dbg!(ips);
             }
             // * search for org with regex
