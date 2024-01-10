@@ -37,16 +37,16 @@ enum Command {
         #[clap(long, short)]
         end: String,
 
-        /// search for IP address
+        /// regex search by IP address
         #[clap(long, short, group = "select")]
         ip: Option<String>,
 
-        /// search by country
+        /// regex search by country
         #[clap(long, short, group = "select")]
         #[arg(num_args(0..))]
         country: Option<Vec<String>>,
 
-        /// search by organization
+        /// regex search by organization
         #[clap(long, short, group = "select")]
         org: Option<String>,
     },
