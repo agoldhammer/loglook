@@ -463,7 +463,7 @@ pub async fn search(
             (None, None, Some(org)) => {
                 let orgs_with_ips = query::get_current_ips_by_org(&current_logentries_coll).await?;
                 for org_with_ips in orgs_with_ips {
-                    if org_with_ips.org == org.to_owned() {
+                    if org_with_ips.org == *org {
                         let mut ips = org_with_ips.ips;
                         output_ips(
                             suppress_logentry_output,
