@@ -1,7 +1,6 @@
 use anyhow::{anyhow, bail};
 use console::style;
-#[allow(unused_imports)]
-use futures::{StreamExt, TryStreamExt};
+use futures::StreamExt;
 use mongodb::bson::doc;
 use mongodb::options::IndexOptions;
 use query::DateRange;
@@ -474,18 +473,6 @@ pub async fn search(
                         .await?;
                     }
                 }
-
-                // dbg!(org_with_ips);
-                // for org_with_ip in org_with_ips {
-                //     dbg!(org_with_ip);
-                // }
-                // output_ips(
-                //     suppress_logentry_output,
-                //     &hostdata_coll,
-                //     &current_logentries_coll,
-                //     &mut ips,
-                // )
-                // .await?;
             }
             _ => (),
         };

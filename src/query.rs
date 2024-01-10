@@ -1,4 +1,3 @@
-// use super::HostData;
 use super::Logdate;
 use crate::log_entries::LogEntry;
 use bson;
@@ -189,52 +188,6 @@ pub async fn get_current_ips_by_country(
 pub async fn get_current_ips_by_org(
     current_logentries_coll: &Collection<LogEntry>,
 ) -> anyhow::Result<Vec<OrgWithIps>> {
-    // let pipeline = [
-    //     doc! {
-    //         "$lookup": doc! {
-    //             "as": "hostdata",
-    //             "from": "hostdata",
-    //             "foreignField": "ip",
-    //             "localField": "ip"
-    //         }
-    //     },
-    //     doc! {
-    //         "$project": doc! {
-    //             "ip": 1,
-    //             "hostdata.geodata.organiation": 1
-    //         }
-    //     },
-    //     doc! {
-    //         "$sort": doc! {
-    //             "hostdata.geodata.organization": 1
-    //         }
-    //     },
-    //     doc! {
-    //         "$set": doc! {
-    //             "organization": "$hostdata.geodata.organization"
-    //         }
-    //     },
-    //     doc! {
-    //         "$project": doc! {
-    //             "hostdata": 0
-    //         }
-    //     },
-    //     doc! {
-    //         "$unwind": doc! {
-    //             "path": "$organization",
-    //             "preserveNullAndEmptyArrays": false
-    //         }
-    //     },
-    //     doc! {
-    //         "$group": doc! {
-    //             "_id": "$organization",
-    //             "ips": doc! {
-    //                 "$addToSet": "$ip"
-    //             }
-    //         }
-    //     },
-    //     doc! {"$sort": doc! {"_id": 1}},
-    // ];
     let pipeline = [
         doc! {
             "$lookup": doc! {
