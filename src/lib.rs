@@ -345,7 +345,6 @@ pub async fn get_hostdata(ip: &str, hd_coll: &HostDataColl) -> anyhow::Result<Ho
     }
 }
 
-// TODO: this has to be fixed to show all ips in daterange
 // output a vector of ips
 async fn output_ips(
     suppress_logentry_output: bool,
