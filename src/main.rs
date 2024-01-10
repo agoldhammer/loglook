@@ -66,13 +66,7 @@ async fn main() {
             ip,
             country,
             org,
-        } => {
-            println!(
-                "s {:?}, e {:?}, ip {:?} co {:?} org {:?}",
-                start, end, ip, country, org
-            );
-            loglook::search(nologs, start, end, ip, country, org).await
-        }
+        } => loglook::search(nologs, start, end, ip, country, org).await,
     };
 
     match result {

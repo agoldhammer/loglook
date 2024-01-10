@@ -396,11 +396,6 @@ pub async fn search(
     country: &Option<Vec<String>>,
     org: &Option<String>,
 ) -> anyhow::Result<()> {
-    println!(
-        "search: {start}-{end}--{:?}--{:?}--{:?}--nologs {:?}",
-        ip, country, org, nologs
-    );
-
     // let mut no_logentry_output: bool = false;
     let suppress_logentry_output: bool = match *nologs {
         Some(true) => true,
