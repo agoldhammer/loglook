@@ -35,7 +35,6 @@ type LogEntryColl = Collection<LogEntry>;
 type HostDataColl = Collection<HostData>;
 
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct Config {
     api_key: String,
     db_uri: String,
