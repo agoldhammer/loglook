@@ -1,8 +1,6 @@
-// LogEntry holds info derived from one line of log file
 use anyhow::{Context, Result};
 use bson;
 use chrono;
-// use chrono::FixedOffset;
 use core::convert::TryFrom;
 use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize};
@@ -52,7 +50,6 @@ impl TryFrom<&String> for LogEntry {
             .captures(line)
             .with_context(|| format!("Failed to parse line: {:?}", line))?;
         let ip_str = get_re_match_part(&caps, "ip");
-        // let ip = ip_str.parse::<IpAddr>().expect("should have good ip addr");
         let code_str = get_re_match_part(&caps, "code");
         let nbytes_str = get_re_match_part(&caps, "nbytes");
         let time_str = get_re_match_part(&caps, "time");
