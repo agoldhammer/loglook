@@ -1,5 +1,4 @@
 use clap::{ArgAction, Parser, Subcommand};
-use ctrlc;
 use std::path::PathBuf;
 use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -77,7 +76,7 @@ async fn read(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
 
         if *daemon {
             sleep(Duration::from_secs(1)).await;
-            seconds_till_run = seconds_till_run - 1;
+            seconds_till_run -= 1;
         } else {
             break;
         }
