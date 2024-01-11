@@ -158,7 +158,6 @@ async fn setup_db(db_uri: &str) -> anyhow::Result<(mongodb::Database, HostDataCo
         .options(None)
         .build();
     logents_coll.create_index(le_time_index_model, None).await?;
-    // println!("Indices {}, {}", hd_index.index_name, le_index.index_name);
     Ok((db, host_data_coll, logents_coll))
 }
 
@@ -200,8 +199,6 @@ pub async fn run(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
     // * process each logline and collect parsed lines into Vec<LogEntry>
     let logentries = make_logentries(lines);
     counts.n_logents = logentries.len();
-    // println!("Log lines: {le_count}");
-
     // * end of input stage, resulting in raw logentries
 
     // * from raw logentries extract set of unique ips and map from ips
@@ -258,7 +255,7 @@ pub async fn run(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
     drop(tx_rdns); // have to drop the original channel that has been cloned for each task
     drop(tx_geo);
 
-    // ! only les associated with freshly looked up ips will be output here. Is that what is wanted?
+    //  only les associated with freshly looked up ips will be output here. Is that what is wanted?
     let mut ips_to_geodata_map: HashMap<String, geo::Geodata> = HashMap::new();
     while let Some(geo_lookup_data) = rx_geo.recv().await {
         pb_geo.inc(1);
@@ -315,7 +312,7 @@ pub async fn run(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
     if docs.len() > 0 {
         host_data_coll.insert_many(docs, None).await?;
     }
-    // ! insertion of logentries is done synchronously with this logic. May want to change??
+    //  insertion of logentries is done synchronously with this logic. May want to change??
     for le in logentries {
         let result = logents_coll.insert_one(le, None).await;
         match result {
