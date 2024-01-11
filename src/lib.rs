@@ -458,12 +458,12 @@ pub async fn search(
                 let orgs_with_ips = query::get_current_ips_by_org(&current_logentries_coll).await?;
                 let re = Regex::new(org)?;
                 for org_with_ips in orgs_with_ips {
-                    println!(
-                        "{}: {}\n----------",
-                        style("Organization").red(),
-                        style(&org_with_ips.org).yellow()
-                    );
                     if re.is_match(&org_with_ips.org) {
+                        println!(
+                            "{}: {}\n----------",
+                            style("Organization").red(),
+                            style(&org_with_ips.org).yellow()
+                        );
                         let mut ips = org_with_ips.ips;
                         output_ips(
                             suppress_logentry_output,
