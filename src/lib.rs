@@ -35,9 +35,10 @@ type LogEntryColl = Collection<LogEntry>;
 type HostDataColl = Collection<HostData>;
 
 #[derive(Deserialize)]
-struct Config {
-    api_key: String,
-    db_uri: String,
+pub struct Config {
+    pub api_key: String,
+    pub db_uri: String,
+    pub db_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -71,7 +72,7 @@ pub struct Counts {
     pub n_skipped_les: usize,
 }
 
-fn read_config() -> Config {
+pub fn read_config() -> Config {
     let path = shellexpand::tilde("~/.loglook/config.toml");
     let config = Config::from_config_file(path.as_ref()).unwrap();
     config
@@ -121,10 +122,12 @@ fn progress_bar_setup(n_pb_items: u64) -> (ProgressBar, ProgressBar) {
     (pb_rdns, pb_geo)
 }
 
-async fn setup_db(db_uri: &str) -> anyhow::Result<(mongodb::Database, HostDataColl, LogEntryColl)> {
-    let client = Client::with_uri_str(db_uri).await?;
+async fn setup_db(
+    config: &Config,
+) -> anyhow::Result<(mongodb::Database, HostDataColl, LogEntryColl)> {
+    let client = Client::with_uri_str(&config.db_uri).await?;
     // TODO: should take dbname from config
-    let db = client.database("loglook");
+    let db = client.database(&config.db_name);
     let host_data_coll: HostDataColl = db.collection("hostdata");
     let hd_options = IndexOptions::builder().unique(true).build();
     let hd_index_model = IndexModel::builder()
@@ -171,14 +174,13 @@ async fn ip_in_hdcoll(ip: String, host_data_coll: HostDataColl) -> anyhow::Resul
     Ok(retval)
 }
 
-pub async fn run(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
+pub async fn read(daemon: &bool, path: &PathBuf, config: &Config) -> anyhow::Result<()> {
     /* Strategy: Parse loglines into LogEntries
     Do reverse dns lookup to generate RevLookupData, collect in map with ip as key
     Do geo lookup to generate Geodata, collect in map with ip as key
     Output to console
     Eventually, send to mongo db
      */
-    let config = read_config();
     let mut counts = Counts {
         n_inserted_les: 0,
         n_logents: 0,
@@ -187,7 +189,7 @@ pub async fn run(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
         n_unique_ips: 0,
     };
     // * setup database
-    let (_, host_data_coll, logents_coll) = setup_db(&config.db_uri).await?;
+    let (_, host_data_coll, logents_coll) = setup_db(config).await?;
 
     // * input stage
     let file = read_lines(path);
@@ -217,7 +219,6 @@ pub async fn run(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
         match result {
             Some(result) => {
                 let (ip, is_in) = result?;
-                // println!("ip {} is in {}", ip, is_in);
                 if !is_in {
                     ips_rdns_data_needed.insert(ip.clone());
                     ips_geodata_needed.insert(ip.clone());
@@ -389,6 +390,7 @@ pub async fn search(
     ip: &Option<String>,
     country: &Option<Vec<String>>,
     org: &Option<String>,
+    config: &Config,
 ) -> anyhow::Result<()> {
     // let mut no_logentry_output: bool = false;
     let suppress_logentry_output: bool = match *nologs {
@@ -397,11 +399,8 @@ pub async fn search(
         None => false,
     };
 
-    let config = read_config();
-
     let date_range = query::time_str_to_daterange(start, end)?;
-
-    let (loglook_db, hostdata_coll, logents_coll) = setup_db(&config.db_uri).await?;
+    let (loglook_db, hostdata_coll, logents_coll) = setup_db(config).await?;
     // * set up the temporary collection of logentries using the current daterange, name = "current_logentries"
     query::make_current_le_coll(&date_range, &logents_coll).await?;
     let current_logentries_coll: mongodb::Collection<LogEntry> =
@@ -506,12 +505,15 @@ mod tests {
 
     #[test]
     fn test_search() {
+        let config = read_config();
         let nologs = None as Option<bool>;
         let start = "2023-12-29T11:45:00Z";
         let end = "2023-12-29T12:00:00Z";
         let void_arg = None as Option<String>;
         let void_vec = None as Option<Vec<String>>;
-        let res = aw!(search(&nologs, start, end, &void_arg, &void_vec, &void_arg));
+        let res = aw!(search(
+            &nologs, start, end, &void_arg, &void_vec, &void_arg, &config
+        ));
         tokio_test::assert_ok!(res);
     }
 }

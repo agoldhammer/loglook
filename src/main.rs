@@ -57,7 +57,7 @@ enum Command {
     },
 }
 
-async fn read(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
+async fn read(daemon: &bool, path: &PathBuf, config: &loglook::Config) -> anyhow::Result<()> {
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
     ctrlc::set_handler(move || {
@@ -71,7 +71,7 @@ async fn read(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
         if seconds_till_run == 0 {
             seconds_till_run = 1800; // reset to 30 minutes
             println!("Checking log ...");
-            loglook::run(daemon, path).await?;
+            loglook::read(daemon, path, config).await?;
         }
 
         if *daemon {
@@ -89,10 +89,11 @@ async fn read(daemon: &bool, path: &PathBuf) -> anyhow::Result<()> {
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() {
     let cli = App::parse();
+    let config = loglook::read_config();
     // let args = cli.command
     let result = match &cli.command {
         #[allow(unused_variables)]
-        Command::Read { daemon, path } => read(daemon, path).await,
+        Command::Read { daemon, path } => read(daemon, path, &config).await,
         Command::Search {
             nologs,
             start,
@@ -100,7 +101,7 @@ async fn main() {
             ip,
             country,
             org,
-        } => loglook::search(nologs, start, end, ip, country, org).await,
+        } => loglook::search(nologs, start, end, ip, country, org, &config).await,
     };
 
     match result {
