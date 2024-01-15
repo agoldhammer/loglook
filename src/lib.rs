@@ -38,7 +38,7 @@ type HostDataColl = Collection<HostData>;
 pub struct Config {
     pub api_key: String,
     pub db_uri: String,
-    pub db_name: String,
+    pub db_name: String, // canonical name is loglook for prod, test_loglook for dev
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -499,16 +499,17 @@ mod tests {
 
     #[test]
     fn config_read_test() {
-        let db_uri = read_config().db_uri;
-        assert!(db_uri.contains("27017"));
+        let config = read_config();
+        assert!(config.db_uri.contains("27017"));
+        assert!(config.db_name.contains("loglook"));
     }
 
     #[test]
     fn test_search() {
         let config = read_config();
         let nologs = None as Option<bool>;
-        let start = "2023-12-29T11:45:00Z";
-        let end = "2023-12-29T12:00:00Z";
+        let start = "2023-11-25T00:00:00Z";
+        let end = "2023-11-26T00:00:00Z";
         let void_arg = None as Option<String>;
         let void_vec = None as Option<Vec<String>>;
         let res = aw!(search(
