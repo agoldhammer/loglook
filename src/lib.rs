@@ -392,7 +392,6 @@ pub async fn search(
     org: &Option<String>,
     config: &Config,
 ) -> anyhow::Result<()> {
-    // let mut no_logentry_output: bool = false;
     let suppress_logentry_output: bool = match *nologs {
         Some(true) => true,
         Some(false) => false,
