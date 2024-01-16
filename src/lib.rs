@@ -486,8 +486,6 @@ pub async fn search(
 #[cfg(test)]
 mod tests {
     use super::*;
-    // use crate::read_config;
-    // use mongodb::bson::{doc, to_document};
     use tokio_test::assert_ok;
     use tokio_test::block_on;
 
