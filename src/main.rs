@@ -8,7 +8,7 @@ use tokio::time::sleep;
 
 // * https://rust-cli-recommendations.sunshowers.io/handling-arguments.html
 #[derive(Debug, Parser)]
-#[clap(name = "loglook", version = "0.2", about = "Log Reader")]
+#[clap(name = "loglook", version = "0.3", about = "Log Reader")]
 pub struct App {
     // #[clap(flatten)]
     // global_opts: GlobalOpts,
