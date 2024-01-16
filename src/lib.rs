@@ -214,19 +214,14 @@ pub async fn read(daemon: &bool, path: &PathBuf, config: &Config) -> anyhow::Res
     }
     let mut ips_rdns_data_needed = HashSet::new();
     let mut ips_geodata_needed = HashSet::new();
-    loop {
-        let result = ips_join_set.join_next().await;
-        match result {
-            Some(result) => {
-                let (ip, is_in) = result?;
-                if !is_in {
-                    ips_rdns_data_needed.insert(ip.clone());
-                    ips_geodata_needed.insert(ip.clone());
-                }
-            }
-            None => break,
+    while let Some(res) = ips_join_set.join_next().await {
+        let (ip, is_in) = res?;
+        if !is_in {
+            ips_rdns_data_needed.insert(ip.clone());
+            ips_geodata_needed.insert(ip.clone());
         }
     }
+
     // * --------------
     counts.n_unique_ips = ip_set.len();
     counts.n_new_ips = ips_rdns_data_needed.len();
