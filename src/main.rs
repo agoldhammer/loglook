@@ -70,7 +70,6 @@ async fn read(daemon: &bool, path: &PathBuf, config: &loglook::Config) -> anyhow
     while running.load(Ordering::SeqCst) {
         if seconds_till_run == 0 {
             seconds_till_run = 1800; // reset to 30 minutes
-            println!("Checking log ...");
             loglook::read(daemon, path, config).await?;
         }
 
