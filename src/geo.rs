@@ -2,7 +2,7 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::fmt;
+use std::{fmt, sync::Arc};
 use tokio::sync::mpsc;
 
 #[allow(dead_code)]
@@ -49,7 +49,7 @@ async fn send_error(tx: mpsc::Sender<Geodata>, ip: &str, msg: &str) {
     tx.send(geod).await.expect("shd send geod error");
 }
 
-pub async fn geo_lkup(ip: &str, tx: mpsc::Sender<Geodata>, api_key: String) {
+pub async fn geo_lkup(ip: &str, tx: mpsc::Sender<Geodata>, api_key: Arc<String>) {
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
     let res = reqwest::get(uri).await.unwrap();
     if res.status() == 200 {
@@ -84,8 +84,9 @@ mod tests {
     #[test]
     fn geo_lkup_bad_ip() {
         let api_key = read_config().api_key;
+        let key = Arc::new(api_key);
         let (tx, _rx) = mpsc::channel(32);
         let ip = "192.168.0.116";
-        assert_eq!(aw!(geo_lkup(ip, tx, api_key)), ());
+        assert_eq!(aw!(geo_lkup(ip, tx, key)), ());
     }
 }

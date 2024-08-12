@@ -10,6 +10,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::vec::Vec;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -240,9 +241,10 @@ pub async fn read(daemon: &bool, path: &PathBuf, config: &Config) -> anyhow::Res
     }
 
     let (tx_geo, mut rx_geo) = mpsc::channel(CHAN_BUF_SIZE);
+    let api_key = Arc::new(config.api_key.clone());
     for ip in ips_geodata_needed {
         let txa2 = tx_geo.clone();
-        let key = config.api_key.clone();
+        let key = api_key.clone();
         join_set.spawn(async move { geo::geo_lkup(&ip, txa2, key).await });
     }
 
