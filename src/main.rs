@@ -89,10 +89,18 @@ async fn read(daemon: &bool, path: &PathBuf, config: &loglook::Config) -> anyhow
 async fn main() {
     let cli = App::parse();
     let config = loglook::read_config();
+    let conf = match config {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!("Application error: {}", e);
+            process::exit(1);
+        }
+    };
+
     // let args = cli.command
     let result = match &cli.command {
         #[allow(unused_variables)]
-        Command::Read { daemon, path } => read(daemon, path, &config).await,
+        Command::Read { daemon, path } => read(daemon, path, &conf).await,
         Command::Search {
             nologs,
             start,
@@ -100,7 +108,7 @@ async fn main() {
             ip,
             country,
             org,
-        } => loglook::search(nologs, start, end, ip, country, org, &config).await,
+        } => loglook::search(nologs, start, end, ip, country, org, &conf).await,
     };
 
     match result {

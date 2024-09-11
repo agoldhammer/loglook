@@ -83,7 +83,8 @@ mod tests {
 
     #[test]
     fn geo_lkup_bad_ip() {
-        let api_key = read_config().api_key;
+        let conf = read_config().unwrap();
+        let api_key = conf.api_key;
         let key = Arc::new(api_key);
         let (tx, _rx) = mpsc::channel(32);
         let ip = "192.168.0.116";

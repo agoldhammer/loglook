@@ -73,10 +73,11 @@ pub struct Counts {
     pub n_skipped_les: usize,
 }
 
-pub fn read_config() -> Config {
+pub fn read_config() -> anyhow::Result<Config> {
     let path = shellexpand::tilde("~/.loglook/config.toml");
-    let config = Config::from_config_file(path.as_ref()).unwrap();
-    config
+    println!("Reading config from: {}", path.to_string());
+    let config = Config::from_config_file(path.as_ref())?;
+    Ok(config)
 }
 
 fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static>> {
@@ -493,14 +494,14 @@ mod tests {
 
     #[test]
     fn config_read_test() {
-        let config = read_config();
+        let config = read_config().unwrap();
         assert!(config.db_uri.contains("27017"));
         assert!(config.db_name.contains("loglook"));
     }
 
     #[test]
     fn test_search() {
-        let config = read_config();
+        let config = read_config().unwrap();
         let nologs = None as Option<bool>;
         let start = "2023-11-25T00:00:00Z";
         let end = "2023-11-26T00:00:00Z";
