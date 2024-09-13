@@ -1,11 +1,10 @@
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use console::style;
 use futures::StreamExt;
 use mongodb::bson::doc;
 use mongodb::options::IndexOptions;
 use query::DateRange;
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Lines};
@@ -75,13 +74,16 @@ pub struct Counts {
 
 pub fn read_config() -> anyhow::Result<Config> {
     let path = shellexpand::tilde("~/.loglook/config.toml");
-    println!("Reading config from: {}", path.to_string());
-    let config = Config::from_config_file(path.as_ref())?;
+    let config = Config::from_config_file(path.as_ref())
+        .with_context(|| format!("Failed to read config file: {path}"))?;
     Ok(config)
 }
 
-fn read_lines(path: &PathBuf) -> Result<io::Lines<BufReader<File>>, Box<dyn Error + 'static>> {
-    let file = File::open(path)?;
+fn read_lines(path: &PathBuf) -> anyhow::Result<io::Lines<BufReader<File>>> {
+    let path_string = path
+        .to_str()
+        .ok_or(anyhow!("Failed to convert path to string"))?;
+    let file = File::open(path).with_context(|| format!("Failed to open file {path_string}"))?;
     Ok(io::BufReader::new(file).lines())
 }
 
