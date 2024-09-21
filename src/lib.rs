@@ -172,8 +172,8 @@ async fn ip_in_hdcoll(
     ip: Arc<String>,
     host_data_coll: HostDataColl,
 ) -> anyhow::Result<(Arc<String>, bool)> {
-    // let myip = ip;
-    let query = doc! {"ip": ip.to_string()};
+    let myip: &str = &ip;
+    let query = doc! {"ip": myip};
     let maybe_hd = host_data_coll.find_one(query, None).await?;
     let retval = match maybe_hd {
         Some(_) => (ip, true),
