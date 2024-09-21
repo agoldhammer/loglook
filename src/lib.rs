@@ -87,7 +87,7 @@ fn read_lines(path: &PathBuf) -> anyhow::Result<io::Lines<BufReader<File>>> {
     Ok(io::BufReader::new(file).lines())
 }
 
-fn logents_to_ips_set(logentries: &[LogEntry]) -> HashSet<String> {
+fn logents_to_ips_set<'ips>(logentries: &[LogEntry]) -> HashSet<String> {
     let mut ips = HashSet::new();
     for logentry in logentries {
         ips.insert(logentry.ip.clone());
@@ -168,8 +168,12 @@ async fn setup_db(
 }
 
 // * check if ip is already in HostData collection in db
-async fn ip_in_hdcoll(ip: String, host_data_coll: HostDataColl) -> anyhow::Result<(String, bool)> {
-    let query = doc! {"ip": &ip};
+async fn ip_in_hdcoll(
+    ip: Arc<String>,
+    host_data_coll: HostDataColl,
+) -> anyhow::Result<(Arc<String>, bool)> {
+    let myip: &str = &ip;
+    let query = doc! {"ip": myip};
     let maybe_hd = host_data_coll.find_one(query, None).await?;
     let retval = match maybe_hd {
         Some(_) => (ip, true),
@@ -206,13 +210,18 @@ pub async fn read(daemon: &bool, path: &PathBuf, config: &Config) -> anyhow::Res
     counts.n_logents = logentries.len();
     // * end of input stage, resulting in raw logentries
 
-    // * from raw logentries extract set of unique ips and map from ips
+    // * output stage
     let ip_set = logents_to_ips_set(&logentries);
+    counts.n_unique_ips = ip_set.len();
 
-    // TODO spawn tasks to join all async calls
-    let ips_all = ip_set.clone();
-    let mut ips_join_set: JoinSet<(String, bool)> = JoinSet::new();
-    for ip in ips_all {
+    let ip_arc_set: HashSet<Arc<String>> = ip_set
+        .into_iter()
+        .map(|ip| Arc::<String>::new(ip))
+        .collect();
+
+    let mut ips_join_set: JoinSet<(Arc<String>, bool)> = JoinSet::new();
+    for arcip in ip_arc_set {
+        let ip = arcip.clone();
         let hdc = host_data_coll.clone();
         ips_join_set.spawn(async move { ip_in_hdcoll(ip, hdc).await.unwrap() });
     }
@@ -227,7 +236,7 @@ pub async fn read(daemon: &bool, path: &PathBuf, config: &Config) -> anyhow::Res
     }
 
     // * --------------
-    counts.n_unique_ips = ip_set.len();
+
     counts.n_new_ips = ips_rdns_data_needed.len();
     let (pb_rdns, pb_geo) = progress_bar_setup(counts.n_unique_ips as u64);
 
