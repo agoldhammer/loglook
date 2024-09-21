@@ -210,14 +210,7 @@ pub async fn read(daemon: &bool, path: &PathBuf, config: &Config) -> anyhow::Res
     counts.n_logents = logentries.len();
     // * end of input stage, resulting in raw logentries
 
-    // // * from raw logentries extract set of unique ips and map from ips
-    // fn get_ip_set() -> &'static HashSet<String> {
-    //     static IP_SET: OnceLock<HashSet<String>> = OnceLock::new();
-    //     IP_SET.get_or_init(|| {
-    //         let mut ip_set = { || logents_to_ips_set(&logentries) };
-    //         ip_set
-    //     })
-    // };
+    // * output stage
     let ip_set = logents_to_ips_set(&logentries);
     counts.n_unique_ips = ip_set.len();
 
