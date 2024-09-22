@@ -224,13 +224,13 @@ pub async fn read(daemon: &bool, path: &PathBuf, config: &Config) -> anyhow::Res
         let hdc = host_data_coll.clone();
         ips_join_set.spawn(async move { ip_in_hdcoll(ip, hdc).await.unwrap() });
     }
-    let mut ips_rdns_data_needed = HashSet::new();
-    let mut ips_geodata_needed = HashSet::new();
+    let mut ips_rdns_data_needed = Vec::new();
+    let mut ips_geodata_needed = Vec::new();
     while let Some(res) = ips_join_set.join_next().await {
         let (ip, is_in) = res?;
         if !is_in {
-            ips_rdns_data_needed.insert(ip.clone());
-            ips_geodata_needed.insert(ip.clone());
+            ips_rdns_data_needed.push(ip.clone());
+            ips_geodata_needed.push(ip.clone());
         }
     }
 
