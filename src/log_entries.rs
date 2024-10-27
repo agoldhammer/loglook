@@ -42,14 +42,19 @@ impl TryFrom<&String> for LogEntry {
     type Error = anyhow::Error;
 
     fn try_from(line: &String) -> Result<Self> {
+        // 10/27/2024: changed regex because identification of $remote_user was incorrect
+        // causing some log entries to be skipped
         let re = Regex::new(
-                    r#"(?<ip>\S+) \S+ \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
+                    r#"(?<ip>\S+) - (?<remote_user>[^\[]+) \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
+
+                    // r#"(?<ip>\S+) - \S+ \[(?<time>.+)\] "(?<method>.*)" (?<code>\d+) (?<nbytes>\d+) "(?<referrer>.*)" "(?<ua>.*)""#,
                 )
                 .unwrap();
         let caps = re
             .captures(line)
             .with_context(|| format!("Failed to parse line: {:?}", line))?;
         let ip_str = get_re_match_part(&caps, "ip");
+        let _remote_user = get_re_match_part(&caps, "remote_user");
         let code_str = get_re_match_part(&caps, "code");
         let nbytes_str = get_re_match_part(&caps, "nbytes");
         let time_str = get_re_match_part(&caps, "time");
@@ -81,6 +86,7 @@ mod tests {
         let line = "180.149.125.164 - - [25/Nov/2023:00:16:58 -0500] \"GET /stalker_portal/server/tools/auth_simple.php HTTP/1.1\" 404 209 \"-\" \"Mozilla/5.0 (Windows NT 5.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36\"".to_string();
         let le = LogEntry::try_from(&line).unwrap();
         assert_eq!(le.line, line);
+        assert_eq!(le.code, 404);
     }
 
     #[test]
@@ -88,5 +94,14 @@ mod tests {
         // removing open bracket on date
         let line = "180.149.125.164 - - 25/Nov/2023:00:16:58 -0500] \"GET /stalker_portal/server/tools/auth_simple.php HTTP/1.1\" 404 209 \"-\" \"Mozilla/5.0 (Windows NT 5.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36\"".to_string();
         assert!(LogEntry::try_from(&line).is_err());
+    }
+
+    #[test]
+    fn detect_weird_remote_user_test() {
+        // removing open bracket on date
+        let line = "158.220.106.204 - goolicker', '', (SELECT (NULL)));#  [15/Sep/2024:11:22:13 -0400] \"GET /VERM/VERM_AJAX_functions.php?function=log_custom_report&SNROY=U5YFS HTTP/1.1\" 404 197 \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.118 Safari/537.36\"".to_string();
+        assert!(LogEntry::try_from(&line).is_ok());
+        let le = LogEntry::try_from(&line).unwrap();
+        assert_eq!(le.code, 404);
     }
 }
