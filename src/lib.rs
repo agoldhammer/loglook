@@ -103,10 +103,17 @@ fn make_logentries(lines: Lines<BufReader<File>>) -> Vec<LogEntry> {
     let mut logentries: Vec<LogEntry> = Vec::new();
     for maybe_logentry in maybe_logentries.into_iter() {
         match maybe_logentry {
-            Ok(logentry) => logentries.push(logentry),
+            Ok(logentry) => {
+                // added 11/1/2024
+                // filter out uptimerobot entries
+                if !logentry.ua.contains("uptimerobot") {
+                    logentries.push(logentry)
+                }
+            }
             Err(e) => eprintln!("Log read error: {}", e),
         }
     }
+
     logentries
 }
 
@@ -130,7 +137,6 @@ async fn setup_db(
     config: &Config,
 ) -> anyhow::Result<(mongodb::Database, HostDataColl, LogEntryColl)> {
     let client = Client::with_uri_str(&config.db_uri).await?;
-    // TODO: should take dbname from config
     let db = client.database(&config.db_name);
     let host_data_coll: HostDataColl = db.collection("hostdata");
     let hd_options = IndexOptions::builder().unique(true).build();
@@ -521,5 +527,18 @@ mod tests {
             &nologs, start, end, &void_arg, &void_vec, &void_arg, &config
         ));
         tokio_test::assert_ok!(res);
+    }
+
+    #[test]
+    fn test_uptimer_filter() {
+        let mut pbuf = PathBuf::new();
+        pbuf.push("data/uptime-test.log");
+        let file = read_lines(&pbuf);
+        let lines = file.unwrap();
+        // * process each logline and collect parsed lines into Vec<LogEntry>
+        let logentries = make_logentries(lines);
+        for le in logentries {
+            assert!(!le.ua.contains("uptimerobot"));
+        }
     }
 }
