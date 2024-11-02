@@ -336,7 +336,8 @@ pub async fn read(daemon: &bool, path: &PathBuf, config: &Config) -> anyhow::Res
     }
 
     // * Display counts
-    println!("Read result: {:?}", counts);
+    let datetime = chrono::Utc::now();
+    println!("{datetime}: Read result: {:?}", counts);
     // * end of output stuff
 
     while let Some(res) = join_set.join_next().await {
