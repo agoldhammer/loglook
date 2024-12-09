@@ -51,21 +51,31 @@ async fn send_error(tx: mpsc::Sender<Geodata>, ip: &str, msg: &str) {
 
 pub async fn geo_lkup(ip: &str, tx: mpsc::Sender<Geodata>, api_key: Arc<String>) {
     let uri = format!("https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip}");
-    let res = reqwest::get(uri).await.unwrap();
-    if res.status() == 200 {
-        let text = res.text().await.unwrap();
-        match serde_json::from_str(&text) as Result<Geodata, serde_json::Error> {
-            Ok(geodata) => {
-                tx.send(geodata).await.expect("geodata send shd work");
-            }
-            Err(e) => {
-                let msg = format!("error decoding json {}", e);
+    // unresolved unwrap in next line caused crash of system on 12/9/2024
+    let res = reqwest::get(uri).await;
+    match res {
+        Ok(res) => {
+            if res.status() == 200 {
+                let text = res.text().await.unwrap();
+                match serde_json::from_str(&text) as Result<Geodata, serde_json::Error> {
+                    Ok(geodata) => {
+                        tx.send(geodata).await.expect("geodata send shd work");
+                    }
+                    Err(e) => {
+                        let msg = format!("error decoding json {}", e);
+                        send_error(tx, ip, &msg).await;
+                    }
+                };
+            } else {
+                let msg = format!("error acquiring geodata for IP {:?}", ip);
                 send_error(tx, ip, &msg).await;
             }
-        };
-    } else {
-        let msg = format!("error acquiring geodata for IP {:?}", ip);
-        send_error(tx, ip, &msg).await;
+        }
+        Err(e) => {
+            let msg = format!("error acquiring geodata for IP {:?}: {}", ip, e);
+            send_error(tx, ip, &msg).await;
+            return;
+        }
     }
 }
 
